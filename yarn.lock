@@ -3175,6 +3175,11 @@ css-what@^6.1.0:
   resolved "https://registry.npmjs.org/css-what/-/css-what-6.1.0.tgz"
   integrity sha512-HTUrgRJ7r4dsZKU6GjmpfRK1O76h97Z8MfS1G0FozR+oF2kG6Vfe8JE6zwrkbxigziPHinCJ+gCPjA9EaBDtRw==
 
+d3@3.5.17:
+  version "3.5.17"
+  resolved "https://registry.npmjs.org/d3/-/d3-3.5.17.tgz"
+  integrity sha512-yFk/2idb8OHPKkbAL8QaOaqENNoMhIaSHZerk3oQsECwkObkCpJyjYwCe+OHiq6UEdhe1m8ZGARRRO3ljFjlKg==
+
 dag-map@~1.0.0:
   version "1.0.2"
   resolved "https://registry.npmjs.org/dag-map/-/dag-map-1.0.2.tgz"
@@ -6025,6 +6030,13 @@ react-is@^18.0.0:
   version "18.3.1"
   resolved "https://registry.npmjs.org/react-is/-/react-is-18.3.1.tgz"
   integrity sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==
+
+react-native-d3-tree-graph@^1.0.12:
+  version "1.0.12"
+  resolved "https://registry.npmjs.org/react-native-d3-tree-graph/-/react-native-d3-tree-graph-1.0.12.tgz"
+  integrity sha512-zkHrrObDICbSgWuQPmAi80JXsZVXzWUoPwK+s+gCS3yyUT1Qp4Pa1pzps4/iPzDpx7ZpNUm4RmuTfMHBmPJhiA==
+  dependencies:
+    d3 "3.5.17"
 
 react-native-gesture-handler@^2.18.1, "react-native-gesture-handler@>= 1.0.0":
   version "2.18.1"

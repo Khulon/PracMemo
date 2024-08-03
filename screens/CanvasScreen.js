@@ -3,10 +3,11 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { ReactNativeZoomableView } from '@openspacelabs/react-native-zoomable-view';
 import Svg, { Line } from 'react-native-svg';
+import TreeGraph from './TreeGraph'
 
 // Constants for canvas dimensions
-const CANVAS_WIDTH = 5000;
-const CANVAS_HEIGHT = 5000;
+const CANVAS_WIDTH = 1000;
+const CANVAS_HEIGHT = 1000;
 
 // Function to calculate center position
 const center = (boxSize) => (CANVAS_WIDTH - boxSize) / 2;
@@ -70,20 +71,7 @@ function CanvasScreen() {
             {renderGrid()}
           </Svg>
 
-          <View
-            style={{
-              position: 'absolute',
-              width: boxSize,
-              height: boxSize,
-              top: boxPosition,
-              left: boxPosition,
-              backgroundColor: 'lightblue',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            <Text style={{ fontSize: 18, color: '#333' }}>Box 1</Text>
-          </View>
+          <TreeGraph style={{ position: 'absolute', top: 0, left: 0, zIndex: 10 }} />
 
         </View>
       </ReactNativeZoomableView>
