@@ -6,7 +6,7 @@ import { createDrawerNavigator } from '@react-navigation/drawer';
 
 // Screens
 import CanvasScreen from './screens/CanvasScreen';
-import ProfileScreen from './screens/ProfileScreen';
+import MemoScreen from './screens/MemoScreen';
 
 const Drawer = createDrawerNavigator();
 
@@ -21,7 +21,7 @@ function App() {
           }}
         >
           <Drawer.Screen name="Canvas" component={CanvasScreen} />
-          <Drawer.Screen name="Profile" component={ProfileScreen} />
+          <Drawer.Screen name="Memo" component={MemoScreen} />
         </Drawer.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>
