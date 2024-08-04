@@ -159,7 +159,7 @@ const TreeGraph = ({ onRootNodePosition }) => {
         y={0}
         textAnchor="middle"
         dy={5}
-        fontSize={12}
+        fontSize={8}
         fill="black"
       >
         {node.name}

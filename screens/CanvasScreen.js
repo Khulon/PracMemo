@@ -71,11 +71,13 @@ function CanvasScreen() {
     <View style={{ flex: 1 }}>
       <ReactNativeZoomableView
         ref={zoomableViewRef}
-        maxZoom={1.5}
-        minZoom={0.5}
+        maxZoom={3}
+        minZoom={0.2}
         zoomStep={0.5}
         initialZoom={1}
-        bindToBorders={false}
+        visualTouchFeedbackEnabled={true}
+        panBoundaryPadding={1000}
+        bindToBorders={true}
         onZoomAfter={logOutZoomState}
         style={{
           width: '100%',
