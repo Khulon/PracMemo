@@ -1,18 +1,39 @@
-// App.js
-import React from 'react';
-import { View, Text } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { ReactNativeZoomableView } from '@openspacelabs/react-native-zoomable-view';
 import Svg, { Line } from 'react-native-svg';
-import TreeGraph from './TreeGraph'
+import TreeGraph from './TreeGraph';
 
 // Constants for canvas dimensions
-const CANVAS_WIDTH = 1000;
-const CANVAS_HEIGHT = 1000;
+const CANVAS_WIDTH = 5000;
+const CANVAS_HEIGHT = 5000;
 
 // Function to calculate center position
 const center = (boxSize) => (CANVAS_WIDTH - boxSize) / 2;
 
 function CanvasScreen() {
+  const [rootPosition, setRootPosition] = useState(null);
+  const zoomableViewRef = useRef(null);
+
+  const handleRootNodePosition = (position) => {
+    setRootPosition(position);
+  };
+
+  const panToOrigin = async () => {
+    console.log('Panning to (0,0)');
+    if (zoomableViewRef.current) {
+      try {
+        // Move the view to (0,0)
+        await zoomableViewRef.current.moveTo(0, 0, true);
+        console.log('Pan to (0,0) successful');
+      } catch (error) {
+        console.error('Error while panning:', error);
+      }
+    } else {
+      console.log('No zoomableViewRef.current');
+    }
+  };
+
   const renderGrid = () => {
     const gridSize = 20;
     const lines = [];
@@ -49,6 +70,7 @@ function CanvasScreen() {
   return (
     <View style={{ flex: 1 }}>
       <ReactNativeZoomableView
+        ref={zoomableViewRef}
         maxZoom={1.5}
         minZoom={0.5}
         zoomStep={0.5}
@@ -71,10 +93,26 @@ function CanvasScreen() {
             {renderGrid()}
           </Svg>
 
-          <TreeGraph />
-
+          <TreeGraph onRootNodePosition={handleRootNodePosition} />
         </View>
       </ReactNativeZoomableView>
+      <TouchableOpacity
+        style={{
+          width: 50,
+          height: 50,
+          backgroundColor: 'blue',
+          borderRadius: 25,
+          justifyContent: 'center',
+          alignItems: 'center',
+          position: 'absolute',
+          zIndex: 20,
+          top: 10,
+          left: 10,
+        }}
+        onPress={panToOrigin}
+      >
+        {/* Optionally add an icon or text here */}
+      </TouchableOpacity>
     </View>
   );
 }

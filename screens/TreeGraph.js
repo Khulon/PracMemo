@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import Svg, { G, Rect, Line, Text as SvgText } from 'react-native-svg';
 
@@ -110,14 +110,13 @@ const calculateGraphDimensions = (treeData) => {
   const maxWidthLevel = Math.max(...Object.values(positions).map(nodes => nodes.length));
 
   const width = maxWidthLevel * nodeSize + (maxWidthLevel - 1) * (nodeSize / 2);
-  const height = depth * nodeSize + (depth - 1) * verticalSpacing;
+  const height = depth * nodeSize + (depth - 2) * verticalSpacing;
 
   return { width, height };
 };
 
-const TreeGraph = ({ style }) => {
+const TreeGraph = ({ onRootNodePosition }) => {
   const { width, height } = calculateGraphDimensions(treeData);
-
   const positions = calculateNodePositions(treeData);
 
   const flatPositions = [];
@@ -132,6 +131,19 @@ const TreeGraph = ({ style }) => {
       flatPositions.push({ node, x, y });
     });
   });
+
+  const previousRootPosition = useRef(null);
+
+  useEffect(() => {
+    const rootNode = flatPositions.find(pos => pos.node.name === 'Root');
+    if (rootNode && onRootNodePosition) {
+      const newPosition = { x: rootNode.x, y: rootNode.y };
+      if (!previousRootPosition.current || (previousRootPosition.current.x !== newPosition.x || previousRootPosition.current.y !== newPosition.y)) {
+        onRootNodePosition(newPosition);
+        previousRootPosition.current = newPosition;
+      }
+    }
+  }, [flatPositions, onRootNodePosition]);
 
   const renderNode = (node, x, y) => (
     <G key={node.name} transform={`translate(${x}, ${y})`}>
@@ -180,7 +192,7 @@ const TreeGraph = ({ style }) => {
   };
 
   return (
-    <View style={{ position: 'absolute', zIndex: 10, borderColor: 'red', borderWidth: 2 }}>
+    <View style={{ position: 'absolute', zIndex: 10, borderColor: 'red', borderWidth: 2, height: '100%', width: '100%', alignItems: 'center', justifyContent: 'center' }}>
       <Svg height={height} width={width} style={{ borderWidth: 2, borderColor: 'gray' }}>
         {renderLines(flatPositions)}
         {flatPositions.map(({ node, x, y }) => renderNode(node, x, y))}
