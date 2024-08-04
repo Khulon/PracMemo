@@ -71,7 +71,7 @@ function CanvasScreen() {
             {renderGrid()}
           </Svg>
 
-          <TreeGraph style={{ position: 'absolute',  zIndex: 10 }} />
+          <TreeGraph />
 
         </View>
       </ReactNativeZoomableView>

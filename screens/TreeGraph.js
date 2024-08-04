@@ -2,8 +2,8 @@ import React from 'react';
 import { View } from 'react-native';
 import Svg, { G, Rect, Line, Text as SvgText } from 'react-native-svg';
 
-const CANVAS_WIDTH = 1000;
-const CANVAS_HEIGHT = 1000;
+const nodeSize = 50;
+const verticalSpacing = 100;
 
 const treeData = {
   name: 'Root',
@@ -87,27 +87,36 @@ const treeData = {
   ],
 };
 
+const calculateNodePositions = (node, level = 0, siblingIndex = 0, positions = {}) => {
+  if (!positions[level]) {
+    positions[level] = [];
+  }
 
+  positions[level].push({ node, siblingIndex });
+
+  if (node.children) {
+    node.children.forEach((child, index) => {
+      calculateNodePositions(child, level + 1, index, positions);
+    });
+  }
+
+  return positions;
+};
+
+const calculateGraphDimensions = (treeData) => {
+  const positions = calculateNodePositions(treeData);
+
+  const depth = Object.keys(positions).length;
+  const maxWidthLevel = Math.max(...Object.values(positions).map(nodes => nodes.length));
+
+  const width = maxWidthLevel * nodeSize + (maxWidthLevel - 1) * (nodeSize / 2);
+  const height = depth * nodeSize + (depth - 1) * verticalSpacing;
+
+  return { width, height };
+};
 
 const TreeGraph = ({ style }) => {
-  const nodeSize = 50;
-  const verticalSpacing = 100;
-
-  const calculateNodePositions = (node, level = 0, siblingIndex = 0, positions = {}) => {
-    if (!positions[level]) {
-      positions[level] = [];
-    }
-
-    positions[level].push({ node, siblingIndex });
-
-    if (node.children) {
-      node.children.forEach((child, index) => {
-        calculateNodePositions(child, level + 1, index, positions);
-      });
-    }
-
-    return positions;
-  };
+  const { width, height } = calculateGraphDimensions(treeData);
 
   const positions = calculateNodePositions(treeData);
 
@@ -115,8 +124,8 @@ const TreeGraph = ({ style }) => {
   Object.keys(positions).forEach(level => {
     const nodes = positions[level];
     const totalNodes = nodes.length;
-    const horizontalSpacing = CANVAS_WIDTH / (totalNodes + 1);
-    
+    const horizontalSpacing = width / (totalNodes + 1);
+
     nodes.forEach(({ node, siblingIndex }, index) => {
       const x = horizontalSpacing * (index + 1);
       const y = verticalSpacing * level + 50; // Start Y from 50 to avoid clipping at top
@@ -171,8 +180,8 @@ const TreeGraph = ({ style }) => {
   };
 
   return (
-    <View style={[style, { zIndex: 10 }]}>
-      <Svg height={CANVAS_HEIGHT} width={CANVAS_WIDTH} style={{ borderWidth: 2, borderColor: 'gray' }}>
+    <View style={{ position: 'absolute', zIndex: 10, borderColor: 'red', borderWidth: 2 }}>
+      <Svg height={height} width={width} style={{ borderWidth: 2, borderColor: 'gray' }}>
         {renderLines(flatPositions)}
         {flatPositions.map(({ node, x, y }) => renderNode(node, x, y))}
       </Svg>
@@ -181,8 +190,6 @@ const TreeGraph = ({ style }) => {
 };
 
 export default TreeGraph;
-
-
 
 
 
