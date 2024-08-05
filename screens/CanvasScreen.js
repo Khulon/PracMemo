@@ -1,8 +1,9 @@
-import React, { useState, useRef } from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
+import { View, TouchableOpacity, StyleSheet, Text, ScrollView } from 'react-native';
 import { ReactNativeZoomableView } from '@openspacelabs/react-native-zoomable-view';
 import Svg, { Line } from 'react-native-svg';
 import TreeGraph from './TreeGraph';
+import { BottomSheetModal, BottomSheetModalProvider, BottomSheetView } from '@gorhom/bottom-sheet';
 
 // Constants for canvas dimensions
 const CANVAS_WIDTH = 5000;
@@ -13,17 +14,27 @@ const center = (boxSize) => (CANVAS_WIDTH - boxSize) / 2;
 
 function CanvasScreen() {
   const [rootPosition, setRootPosition] = useState(null);
+  const [selectedNode, setSelectedNode] = useState(null);
   const zoomableViewRef = useRef(null);
+  const bottomSheetModalRef = useRef(null);
+
+  const snapPoints = useMemo(() => ['25%', '50%'], []);
 
   const handleRootNodePosition = (position) => {
     setRootPosition(position);
+  };
+
+  const onNodePress = (node) => {
+    console.log('Node pressed:', node);
+    setSelectedNode(node);
+    bottomSheetModalRef.current?.present();
+    console.log('Modal should present');
   };
 
   const panToOrigin = async () => {
     console.log('Panning to (0,0)');
     if (zoomableViewRef.current) {
       try {
-        // Move the view to (0,0)
         await zoomableViewRef.current.moveTo(0, 0, true);
         console.log('Pan to (0,0) successful');
       } catch (error) {
@@ -68,59 +79,96 @@ function CanvasScreen() {
   const boxPosition = center(boxSize);
 
   return (
-    <View style={{ flex: 1 }}>
-      <ReactNativeZoomableView
-        ref={zoomableViewRef}
-        maxZoom={3}
-        minZoom={0.2}
-        zoomStep={0.5}
-        initialZoom={1}
-        visualTouchFeedbackEnabled={true}
-        panBoundaryPadding={1000}
-        bindToBorders={true}
-        onZoomAfter={logOutZoomState}
-        style={{
-          width: '100%',
-          height: '100%',
-        }}
-      >
-        <View
+    <BottomSheetModalProvider>
+      <View style={{ flex: 1 }}>
+        <ReactNativeZoomableView
+          ref={zoomableViewRef}
+          maxZoom={3}
+          minZoom={0.2}
+          zoomStep={0.5}
+          initialZoom={1}
+          visualTouchFeedbackEnabled={true}
+          panBoundaryPadding={1000}
+          bindToBorders={true}
+          onZoomAfter={logOutZoomState}
           style={{
-            width: CANVAS_WIDTH,
-            height: CANVAS_HEIGHT,
-            position: 'relative',
+            width: '100%',
+            height: '100%',
           }}
         >
-          <Svg height="100%" width="100%">
-            {renderGrid()}
-          </Svg>
+          <View
+            style={{
+              width: CANVAS_WIDTH,
+              height: CANVAS_HEIGHT,
+              position: 'relative',
+            }}
+          >
+            <Svg height="100%" width="100%">
+              {renderGrid()}
+            </Svg>
 
-          <TreeGraph onRootNodePosition={handleRootNodePosition} />
-        </View>
-      </ReactNativeZoomableView>
-      <TouchableOpacity
-        style={{
-          width: 50,
-          height: 50,
-          backgroundColor: 'blue',
-          borderRadius: 25,
-          justifyContent: 'center',
-          alignItems: 'center',
-          position: 'absolute',
-          zIndex: 20,
-          top: 10,
-          left: 10,
-        }}
-        onPress={panToOrigin}
-      >
-        {/* Optionally add an icon or text here */}
-      </TouchableOpacity>
-    </View>
+            <TreeGraph onRootNodePosition={handleRootNodePosition} onNodePress={onNodePress} />
+          </View>
+        </ReactNativeZoomableView>
+        <TouchableOpacity
+          style={{
+            width: 50,
+            height: 50,
+            backgroundColor: 'blue',
+            borderRadius: 25,
+            justifyContent: 'center',
+            alignItems: 'center',
+            position: 'absolute',
+            zIndex: 20,
+            top: 10,
+            left: 10,
+          }}
+          onPress={panToOrigin}
+        >
+          {/* Optionally add an icon or text here */}
+        </TouchableOpacity>
+        <BottomSheetModal
+          ref={bottomSheetModalRef}
+          index={1}
+          snapPoints={snapPoints}
+          onChange={(index) => console.log('handleSheetChanges', index)}
+        >
+          <BottomSheetView style={styles.bottomSheetContent}>
+            <ScrollView contentContainerStyle={styles.scrollViewContent}>
+              {selectedNode && (
+                <>
+                  <Text style={styles.nodeTitle}>{selectedNode.name}</Text>
+                  <Text>Additional details about {selectedNode.name}</Text>
+                  <Text>{selectedNode ? JSON.stringify(selectedNode, null, 2) : 'No node selected'}</Text>
+                  {/* Add more content here as needed */}
+                </>
+              )}
+            </ScrollView>
+          </BottomSheetView>
+        </BottomSheetModal>
+      </View>
+    </BottomSheetModalProvider>
   );
 }
 
 function logOutZoomState(event, gestureState, zoomableViewEventObject) {
   console.log(`Zoom level: ${zoomableViewEventObject.zoomLevel}`);
 }
+
+const styles = StyleSheet.create({
+  bottomSheetContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scrollViewContent: {
+    padding: 16,
+  },
+  nodeTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+});
 
 export default CanvasScreen;

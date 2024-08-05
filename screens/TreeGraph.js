@@ -115,7 +115,7 @@ const calculateGraphDimensions = (treeData) => {
   return { width, height };
 };
 
-const TreeGraph = ({ onRootNodePosition }) => {
+const TreeGraph = ({ onRootNodePosition, onNodePress }) => {
   const [selectedNode, setSelectedNode] = useState(null);
   const { width, height } = calculateGraphDimensions(treeData);
   const positions = calculateNodePositions(treeData);
@@ -148,6 +148,7 @@ const TreeGraph = ({ onRootNodePosition }) => {
 
   const handleNodePress = (node) => {
     setSelectedNode(node);
+    onNodePress(node)
     console.log(node)
   };
 
