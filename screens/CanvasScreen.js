@@ -1,20 +1,21 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
-import { View, TouchableOpacity, StyleSheet, Text, ScrollView } from 'react-native';
+import React, { useState, useRef, useMemo } from 'react';
+import { View, TouchableOpacity, StyleSheet, Text, ScrollView, Button } from 'react-native';
 import { ReactNativeZoomableView } from '@openspacelabs/react-native-zoomable-view';
 import Svg, { Line } from 'react-native-svg';
 import TreeGraph from './TreeGraph';
 import { BottomSheetModal, BottomSheetModalProvider, BottomSheetView } from '@gorhom/bottom-sheet';
+import * as FileSystem from 'expo-file-system';
 
-// Constants for canvas dimensions
 const CANVAS_WIDTH = 5000;
 const CANVAS_HEIGHT = 5000;
+const treeDataFilePath = FileSystem.documentDirectory + 'treeData.json';
 
-// Function to calculate center position
 const center = (boxSize) => (CANVAS_WIDTH - boxSize) / 2;
 
 function CanvasScreen() {
   const [rootPosition, setRootPosition] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
+  const [treeData, setTreeData] = useState({});
   const zoomableViewRef = useRef(null);
   const bottomSheetModalRef = useRef(null);
 
@@ -78,6 +79,22 @@ function CanvasScreen() {
   const boxSize = 100;
   const boxPosition = center(boxSize);
 
+  const addNodeToSelectedNode = async () => {
+    if (selectedNode) {
+      const newNode = { name: `Node ${Date.now()}`, children: [] };
+      selectedNode.children = selectedNode.children || [];
+      selectedNode.children.push(newNode);
+
+      try {
+        await FileSystem.writeAsStringAsync(treeDataFilePath, JSON.stringify(treeData));
+        setTreeData({ ...treeData });
+        console.log('Node added successfully');
+      } catch (error) {
+        console.error('Error adding node:', error);
+      }
+    }
+  };
+
   return (
     <BottomSheetModalProvider>
       <View style={{ flex: 1 }}>
@@ -107,7 +124,12 @@ function CanvasScreen() {
               {renderGrid()}
             </Svg>
 
-            <TreeGraph onRootNodePosition={handleRootNodePosition} onNodePress={onNodePress} />
+            <TreeGraph
+              onRootNodePosition={handleRootNodePosition}
+              onNodePress={onNodePress}
+              treeData={treeData}
+              setTreeData={setTreeData}
+            />
           </View>
         </ReactNativeZoomableView>
         <TouchableOpacity
@@ -125,7 +147,7 @@ function CanvasScreen() {
           }}
           onPress={panToOrigin}
         >
-          {/* Optionally add an icon or text here */}
+          <Text style={{ color: 'white', fontSize: 16 }}>Reset</Text>
         </TouchableOpacity>
         <BottomSheetModal
           ref={bottomSheetModalRef}
@@ -140,7 +162,7 @@ function CanvasScreen() {
                   <Text style={styles.nodeTitle}>{selectedNode.name}</Text>
                   <Text>Additional details about {selectedNode.name}</Text>
                   <Text>{selectedNode ? JSON.stringify(selectedNode, null, 2) : 'No node selected'}</Text>
-                  {/* Add more content here as needed */}
+                  <Button title='Add Node' onPress={addNodeToSelectedNode} />
                 </>
               )}
             </ScrollView>
