@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useRef, useMemo, useEffect } from "react";
 import {
   View,
   TouchableOpacity,
@@ -6,6 +6,7 @@ import {
   Text,
   ScrollView,
   Button,
+  FlatList,
 } from "react-native";
 import { ReactNativeZoomableView } from "@openspacelabs/react-native-zoomable-view";
 import Svg, { Line } from "react-native-svg";
@@ -20,6 +21,7 @@ import * as FileSystem from "expo-file-system";
 const CANVAS_WIDTH = 5000;
 const CANVAS_HEIGHT = 5000;
 const treeDataFilePath = FileSystem.documentDirectory + "treeData.json";
+const recordingsFilePath = FileSystem.documentDirectory + "recordings.json";
 
 const center = (boxSize) => (CANVAS_WIDTH - boxSize) / 2;
 
@@ -27,10 +29,33 @@ function CanvasScreen() {
   const [rootPosition, setRootPosition] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
   const [treeData, setTreeData] = useState({});
+  const [recordings, setRecordings] = useState([]);
   const zoomableViewRef = useRef(null);
   const bottomSheetModalRef = useRef(null);
+  const memoSheetModalRef = useRef(null);
 
   const snapPoints = useMemo(() => ["25%", "50%"], []);
+
+  useEffect(() => {
+    const fetchRecordings = async () => {
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(recordingsFilePath);
+        if (fileInfo.exists) {
+          const fileContent = await FileSystem.readAsStringAsync(
+            recordingsFilePath,
+            {
+              encoding: FileSystem.EncodingType.UTF8,
+            }
+          );
+          setRecordings(JSON.parse(fileContent));
+        }
+      } catch (error) {
+        console.error("Error fetching recordings:", error);
+      }
+    };
+
+    fetchRecordings();
+  }, []);
 
   const handleRootNodePosition = (position) => {
     setRootPosition(position);
@@ -90,9 +115,17 @@ function CanvasScreen() {
   const boxSize = 100;
   const boxPosition = center(boxSize);
 
+  const getMemoNames = (memoIds) => {
+    if (!recordings || !memoIds) return [];
+    return memoIds
+      .map((id) => recordings.find((recording) => recording.id === id))
+      .filter((recording) => recording)
+      .map((recording) => recording.name);
+  };
+
   const addNodeToSelectedNode = async () => {
     if (selectedNode) {
-      const newNode = { key: `${Date.now()}`, name:'New Node', children: [] };
+      const newNode = { key: `${Date.now()}`, name: "New Node", children: [] };
       selectedNode.children = selectedNode.children || [];
       selectedNode.children.push(newNode);
 
@@ -112,7 +145,10 @@ function CanvasScreen() {
   const initializeRootNode = async () => {
     const rootNode = { key: "root", name: "Root", children: [] };
     try {
-      await FileSystem.writeAsStringAsync(treeDataFilePath, JSON.stringify(rootNode));
+      await FileSystem.writeAsStringAsync(
+        treeDataFilePath,
+        JSON.stringify(rootNode)
+      );
       setTreeData(rootNode);
       console.log("Root node initialized successfully");
     } catch (error) {
@@ -159,6 +195,29 @@ function CanvasScreen() {
     }
   };
 
+  const openMemoSelection = () => {
+    memoSheetModalRef.current?.present();
+  };
+
+  const selectMemo = async (memo) => {
+    if (selectedNode) {
+      selectedNode.memo_ids = selectedNode.memo_ids || [];
+      selectedNode.memo_ids.push(memo.id);
+
+      try {
+        await FileSystem.writeAsStringAsync(
+          treeDataFilePath,
+          JSON.stringify(treeData)
+        );
+        setTreeData({ ...treeData });
+        console.log("Memo added successfully");
+      } catch (error) {
+        console.error("Error adding memo:", error);
+      }
+      memoSheetModalRef.current?.dismiss();
+    }
+  };
+
   return (
     <BottomSheetModalProvider>
       <View style={{ flex: 1 }}>
@@ -171,7 +230,6 @@ function CanvasScreen() {
           visualTouchFeedbackEnabled={true}
           panBoundaryPadding={1000}
           bindToBorders={true}
-          onZoomAfter={logOutZoomState}
           style={{
             width: "100%",
             height: "100%",
@@ -225,16 +283,39 @@ function CanvasScreen() {
               {selectedNode && (
                 <>
                   <Text style={styles.nodeTitle}>{selectedNode.name}</Text>
-                  {/* <Text>
-                    {selectedNode
-                      ? JSON.stringify(selectedNode, null, 2)
-                      : "No node selected"}
-                  </Text> */}
+                  <Text style={{ fontSize: 12 }}>
+                    {selectedNode?.memo_ids &&
+                      getMemoNames(selectedNode.memo_ids).join(", ")}
+                  </Text>
+
                   <Button title="Add Node" onPress={addNodeToSelectedNode} />
                   <Button title="Delete Node" onPress={deleteSelectedNode} />
+                  <Button title="Add Memo" onPress={openMemoSelection} />
                 </>
               )}
             </ScrollView>
+          </BottomSheetView>
+        </BottomSheetModal>
+        <BottomSheetModal
+          ref={memoSheetModalRef}
+          index={1}
+          snapPoints={snapPoints}
+          onChange={(index) => console.log("handleMemoSheetChanges", index)}
+        >
+          <BottomSheetView style={styles.bottomSheetContent}>
+            <Text style={styles.modalTitle}>Select a Memo</Text>
+            <FlatList
+              data={recordings}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.memoItem}
+                  onPress={() => selectMemo(item)}
+                >
+                  <Text>{item.name}</Text>
+                </TouchableOpacity>
+              )}
+            />
           </BottomSheetView>
         </BottomSheetModal>
       </View>
@@ -242,23 +323,28 @@ function CanvasScreen() {
   );
 }
 
-function logOutZoomState(event, gestureState, zoomableViewEventObject) {
-  console.log(`Zoom level: ${zoomableViewEventObject.zoomLevel}`);
-}
-
 const styles = StyleSheet.create({
   bottomSheetContent: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
   },
   scrollViewContent: {
-    padding: 16,
+    flexGrow: 1,
+    alignItems: "center",
   },
   nodeTitle: {
+    fontSize: 20,
+    marginBottom: 10,
+  },
+  modalTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 8,
+    marginBottom: 10,
+  },
+  memoItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
   },
 });
 
