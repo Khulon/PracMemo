@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Button, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, Button, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
+import { Swipeable } from 'react-native-gesture-handler';
 
 const MemoScreen = () => {
   const [recording, setRecording] = useState(null);
@@ -9,7 +10,6 @@ const MemoScreen = () => {
   const [isRecording, setIsRecording] = useState(false);
 
   useEffect(() => {
-    // Load recordings from local storage on mount
     loadRecordings();
   }, []);
 
@@ -21,7 +21,6 @@ const MemoScreen = () => {
         return;
       }
   
-      // Set audio mode
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
@@ -43,7 +42,10 @@ const MemoScreen = () => {
         await recording.stopAndUnloadAsync();
         const uri = recording.getURI();
         if (uri) {
-          const newRecording = { uri, timestamp: new Date().toISOString() };
+          const timestamp = new Date().toISOString();
+          const id = generateIdFromTimestamp(timestamp);
+          const name = `New Recording ${recordings.length + 1}`;
+          const newRecording = { id, uri, timestamp, name };
           saveRecording(newRecording);
           setRecordings((prev) => [newRecording, ...prev]);
         }
@@ -60,7 +62,6 @@ const MemoScreen = () => {
       const fileUri = FileSystem.documentDirectory + 'recordings.json';
       let savedRecordings = [];
       
-      // Check if file exists
       const fileInfo = await FileSystem.getInfoAsync(fileUri);
       if (fileInfo.exists) {
         const fileContent = await FileSystem.readAsStringAsync(fileUri, {
@@ -69,10 +70,8 @@ const MemoScreen = () => {
         savedRecordings = JSON.parse(fileContent);
       }
       
-      // Add new recording
       savedRecordings.push(recording);
       
-      // Write updated recordings to file
       await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(savedRecordings), {
         encoding: FileSystem.EncodingType.UTF8,
       });
@@ -86,7 +85,6 @@ const MemoScreen = () => {
       const fileUri = FileSystem.documentDirectory + 'recordings.json';
       let savedRecordings = [];
       
-      // Check if file exists
       const fileInfo = await FileSystem.getInfoAsync(fileUri);
       if (fileInfo.exists) {
         const fileContent = await FileSystem.readAsStringAsync(fileUri, {
@@ -101,16 +99,82 @@ const MemoScreen = () => {
     }
   };
 
+  const viewRecordingsFile = async () => {
+    try {
+      const fileUri = FileSystem.documentDirectory + 'recordings.json';
+      const fileInfo = await FileSystem.getInfoAsync(fileUri);
+
+      if (fileInfo.exists) {
+        const fileContent = await FileSystem.readAsStringAsync(fileUri, {
+          encoding: FileSystem.EncodingType.UTF8,
+        });
+        console.log('Recordings file content:', fileContent);
+        alert('Recordings file content:\n' + fileContent);
+      } else {
+        console.log('No recordings file found.');
+        alert('No recordings file found.');
+      }
+    } catch (error) {
+      console.error('Failed to read recordings file', error);
+      alert('Failed to read recordings file.');
+    }
+  };
+
+  const generateIdFromTimestamp = (timestamp) => {
+    return timestamp.replace(/[-:.TZ]/g, '');
+  };
+
+  const deleteRecording = async (id) => {
+    try {
+      const updatedRecordings = recordings.filter(recording => recording.id !== id);
+      setRecordings(updatedRecordings);
+      
+      const fileUri = FileSystem.documentDirectory + 'recordings.json';
+      await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(updatedRecordings), {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+    } catch (error) {
+      console.error('Failed to delete recording', error);
+    }
+  };
+
+  const renderRightActions = (id) => (
+    <TouchableOpacity
+      style={styles.deleteButton}
+      onPress={() => {
+        Alert.alert(
+          "Delete Recording",
+          "Are you sure you want to delete this recording?",
+          [
+            {
+              text: "Cancel",
+              style: "cancel"
+            },
+            {
+              text: "Delete",
+              onPress: () => deleteRecording(id)
+            }
+          ]
+        );
+      }}
+    >
+      <Text style={styles.deleteButtonText}>Delete</Text>
+    </TouchableOpacity>
+  );
+
   const renderItem = ({ item }) => (
-    <View style={styles.recordingItem}>
-      <Text>{new Date(item.timestamp).toLocaleString()}</Text>
-      <TouchableOpacity
-        onPress={() => playRecording(item.uri)}
-        style={styles.playButton}
-      >
-        <Text>Play</Text>
-      </TouchableOpacity>
-    </View>
+    <Swipeable renderRightActions={() => renderRightActions(item.id)}>
+      <View style={styles.recordingItem}>
+        <Text>{new Date(item.timestamp).toLocaleString()}</Text>
+        <Text>{item.name}</Text>
+        <TouchableOpacity
+          onPress={() => playRecording(item.uri)}
+          style={styles.playButton}
+        >
+          <Text>Play</Text>
+        </TouchableOpacity>
+      </View>
+    </Swipeable>
   );
 
   const playRecording = async (uri) => {
@@ -131,10 +195,11 @@ const MemoScreen = () => {
           onPress={isRecording ? stopRecording : startRecording}
         />
       </View>
+      {/* <Button title="View Recordings File" onPress={viewRecordingsFile} /> */}
       <FlatList
         data={recordings}
         renderItem={renderItem}
-        keyExtractor={(item) => item.uri}
+        keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
       />
     </View>
@@ -163,11 +228,23 @@ const styles = StyleSheet.create({
     padding: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#ccc',
+    backgroundColor: '#fff',
   },
   playButton: {
     padding: 10,
     backgroundColor: '#ddd',
     borderRadius: 5,
+  },
+  deleteButton: {
+    backgroundColor: 'red',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    height: '100%',
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });
 
