@@ -30,30 +30,34 @@ function CanvasScreen() {
   const [selectedNode, setSelectedNode] = useState(null);
   const [treeData, setTreeData] = useState({});
   const [recordings, setRecordings] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const zoomableViewRef = useRef(null);
   const bottomSheetModalRef = useRef(null);
   const memoSheetModalRef = useRef(null);
 
   const snapPoints = useMemo(() => ["25%", "50%"], []);
 
-  useEffect(() => {
-    const fetchRecordings = async () => {
-      try {
-        const fileInfo = await FileSystem.getInfoAsync(recordingsFilePath);
-        if (fileInfo.exists) {
-          const fileContent = await FileSystem.readAsStringAsync(
-            recordingsFilePath,
-            {
-              encoding: FileSystem.EncodingType.UTF8,
-            }
-          );
-          setRecordings(JSON.parse(fileContent));
-        }
-      } catch (error) {
-        console.error("Error fetching recordings:", error);
+  const fetchRecordings = async () => {
+    setIsLoading(true);
+    try {
+      const fileInfo = await FileSystem.getInfoAsync(recordingsFilePath);
+      if (fileInfo.exists) {
+        const fileContent = await FileSystem.readAsStringAsync(
+          recordingsFilePath,
+          {
+            encoding: FileSystem.EncodingType.UTF8,
+          }
+        );
+        setRecordings(JSON.parse(fileContent));
       }
-    };
+    } catch (error) {
+      console.error("Error fetching recordings:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchRecordings();
   }, []);
 
@@ -195,7 +199,8 @@ function CanvasScreen() {
     }
   };
 
-  const openMemoSelection = () => {
+  const openMemoSelection = async () => {
+    await fetchRecordings();
     memoSheetModalRef.current?.present();
   };
 
@@ -300,22 +305,25 @@ function CanvasScreen() {
           ref={memoSheetModalRef}
           index={1}
           snapPoints={snapPoints}
-          onChange={(index) => console.log("handleMemoSheetChanges", index)}
+          onChange={(index) => console.log("handleSheetChanges", index)}
         >
           <BottomSheetView style={styles.bottomSheetContent}>
-            <Text style={styles.modalTitle}>Select a Memo</Text>
-            <FlatList
-              data={recordings}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.memoItem}
-                  onPress={() => selectMemo(item)}
-                >
-                  <Text>{item.name}</Text>
-                </TouchableOpacity>
-              )}
-            />
+            {isLoading ? (
+              <Text>Loading...</Text>
+            ) : (
+              <FlatList
+                data={recordings}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.memoItem}
+                    onPress={() => selectMemo(item)}
+                  >
+                    <Text>{item.name}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+            )}
           </BottomSheetView>
         </BottomSheetModal>
       </View>
@@ -329,15 +337,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   scrollViewContent: {
-    flexGrow: 1,
     alignItems: "center",
   },
   nodeTitle: {
-    fontSize: 20,
-    marginBottom: 10,
-  },
-  modalTitle: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: "bold",
     marginBottom: 10,
   },
@@ -345,6 +348,8 @@ const styles = StyleSheet.create({
     padding: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#ccc",
+    width: "100%",
+    alignItems: "center",
   },
 });
 
