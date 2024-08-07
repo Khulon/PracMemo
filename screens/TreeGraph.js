@@ -33,11 +33,15 @@ const calculateGraphDimensions = (treeData) => {
   return { width, height };
 };
 
-const TreeGraph = ({ treeData, selectedNode, onRootNodePosition, onNodePress }) => {
+const TreeGraph = ({ treeData, selectedNode, onRootNodePosition, onNodePress, initializeRootNode }) => {
   const previousRootPosition = useRef(null);
 
   useEffect(() => {
-    if (!treeData) return;
+    // Check if treeData is empty and initialize it with a root node if necessary
+    if (!treeData || Object.keys(treeData).length === 0) {
+      console.log('asdasd')
+      initializeRootNode()
+    }
 
     const { width, height } = calculateGraphDimensions(treeData);
     const positions = calculateNodePositions(treeData);
@@ -72,7 +76,7 @@ const TreeGraph = ({ treeData, selectedNode, onRootNodePosition, onNodePress }) 
   };
 
   const renderNode = (node, x, y) => (
-    <G key={node.name}>
+    <G key={node.key}>
       <Rect
         x={x - nodeSize / 2}
         y={y - nodeSize / 2}
@@ -94,7 +98,7 @@ const TreeGraph = ({ treeData, selectedNode, onRootNodePosition, onNodePress }) 
         const childPosition = flatPositions.find(pos => pos.node === child);
         return childPosition ? (
           <Line
-            key={`line-${node.name}-${child.name}-${index}`}
+            key={`line-${node.key}-${child.name}-${index}`}
             x1={x}
             y1={y + nodeSize / 2}
             x2={childPosition.x}

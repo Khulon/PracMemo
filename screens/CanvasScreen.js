@@ -92,7 +92,7 @@ function CanvasScreen() {
 
   const addNodeToSelectedNode = async () => {
     if (selectedNode) {
-      const newNode = { name: `Node ${Date.now()}`, children: [] };
+      const newNode = { key: `${Date.now()}`, name:'New Node', children: [] };
       selectedNode.children = selectedNode.children || [];
       selectedNode.children.push(newNode);
 
@@ -106,6 +106,17 @@ function CanvasScreen() {
       } catch (error) {
         console.error("Error adding node:", error);
       }
+    }
+  };
+
+  const initializeRootNode = async () => {
+    const rootNode = { key: "root", name: "Root", children: [] };
+    try {
+      await FileSystem.writeAsStringAsync(treeDataFilePath, JSON.stringify(rootNode));
+      setTreeData(rootNode);
+      console.log("Root node initialized successfully");
+    } catch (error) {
+      console.error("Error initializing root node:", error);
     }
   };
 
@@ -182,6 +193,7 @@ function CanvasScreen() {
               onNodePress={onNodePress}
               treeData={treeData}
               selectedNode={selectedNode} // Pass the selected node here
+              initializeRootNode={initializeRootNode}
             />
           </View>
         </ReactNativeZoomableView>
@@ -213,12 +225,11 @@ function CanvasScreen() {
               {selectedNode && (
                 <>
                   <Text style={styles.nodeTitle}>{selectedNode.name}</Text>
-                  <Text>Additional details about {selectedNode.name}</Text>
-                  <Text>
+                  {/* <Text>
                     {selectedNode
                       ? JSON.stringify(selectedNode, null, 2)
                       : "No node selected"}
-                  </Text>
+                  </Text> */}
                   <Button title="Add Node" onPress={addNodeToSelectedNode} />
                   <Button title="Delete Node" onPress={deleteSelectedNode} />
                 </>
