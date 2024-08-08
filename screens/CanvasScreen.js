@@ -294,8 +294,8 @@ function CanvasScreen() {
                   </Text>
 
                   <Button title="Add Node" onPress={addNodeToSelectedNode} />
-                  <Button title="Delete Node" onPress={deleteSelectedNode} />
-                  <Button title="Add Memo" onPress={openMemoSelection} />
+                  <Button title="Delete Node" color="red" onPress={deleteSelectedNode}/>
+                  <Button title="Add Memo" color='green' onPress={openMemoSelection} />
                 </>
               )}
             </ScrollView>
