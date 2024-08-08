@@ -140,6 +140,7 @@ function CanvasScreen() {
         );
         setTreeData({ ...treeData });
         console.log("Node added successfully");
+        console.log(JSON.stringify(treeData))
       } catch (error) {
         console.error("Error adding node:", error);
       }
@@ -288,9 +289,12 @@ function CanvasScreen() {
               {selectedNode && (
                 <>
                   <Text style={styles.nodeTitle}>{selectedNode.name}</Text>
+                  <Button title="Delete Node" color="red" onPress={deleteSelectedNode} />
                   <ScrollView
+                    showsHorizontalScrollIndicator={false}
                     horizontal
-                    contentContainerStyle={{gap:20}}
+                    contentContainerStyle={{ gap: 20 }}
+                    style={{ margin: 10 }}
                   >
                     {selectedNode.memo_ids &&
                       getMemoNames(selectedNode.memo_ids).map((name) => (
@@ -299,17 +303,56 @@ function CanvasScreen() {
                         </View>
                       ))}
                     <TouchableOpacity
-                      style={{ height: 50, width: 100, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: 'lightgray', borderWidth: '2', borderColor: 'gray', borderRadius:1, borderStyle: 'dashed', }}
+                      style={{ height: 50, width: 100, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: 'lightgray', borderWidth: '2', borderColor: 'gray', borderRadius: 1, borderStyle: 'dashed', }}
                       onPress={openMemoSelection}
                     >
-                      <Text style={{color:'green'}}>
+                      <Text style={{ color: 'green' }}>
                         Add Memo
                       </Text>
                     </TouchableOpacity>
                   </ScrollView>
-
-                  <Button title="Add Node" onPress={addNodeToSelectedNode} />
-                  <Button title="Delete Node" color="red" onPress={deleteSelectedNode} />
+                  <ScrollView
+                    showsHorizontalScrollIndicator={false}
+                    horizontal
+                    contentContainerStyle={{ gap: 20 }}
+                    style={{ margin: 10 }}
+                  >
+                    {selectedNode.children &&
+                      selectedNode.children.map((child) => (
+                        <View
+                          style={{
+                            height: 50,
+                            width: 100,
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            backgroundColor: 'lightgray',
+                            borderWidth: 2,
+                            borderColor: 'gray',
+                          }}
+                          key={child.key}
+                        >
+                          <Text>{child.name}</Text>
+                        </View>
+                      ))}
+                    <TouchableOpacity
+                      style={{
+                        height: 50,
+                        width: 100,
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        backgroundColor: 'lightgray',
+                        borderWidth: 2,
+                        borderColor: 'gray',
+                        borderRadius: 1,
+                        borderStyle: 'dashed',
+                      }}
+                      onPress={addNodeToSelectedNode} // Assuming you want to add a new node
+                    >
+                      <Text style={{ color: 'green' }}>Add Node</Text>
+                    </TouchableOpacity>
+                  </ScrollView>
                 </>
               )}
             </ScrollView>
