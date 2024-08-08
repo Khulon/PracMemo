@@ -56,32 +56,38 @@
   "name": "Root",
   "children": [
     {
-      "key": "1723101820969",
+      "key": "1723102982890",
       "name": "New Node",
       "children": [
         {
-          "key": "1723101866925",
+          "key": "1723103866626",
           "name": "New Node",
-          "children": [
-            {
-              "key": "1723101988041",
-              "name": "New Node",
-              "children": []
-            }
-          ]
+          "children": []
+        },
+        {
+          "key": "1723103901138",
+          "name": "New Node",
+          "children": []
+        }
+      ],
+      "memos": [
+        {
+          "id": "20240808052148956",
+          "connected_node_id": null
         }
       ]
     }
   ],
   "memos": [
     {
-      "id": "20240808052151898"
-    },
-    {
-      "id": "20240808052154810"
-    },
-    {
-      "id": "20240808052151898"
+      "id": "20240808052151898",
+      "connected_node_id": null
     }
   ]
 }
+
+
+great! ok now that i know that the treedata looks correct, i am not concerned with displaying that anymore, you can comment that out.
+
+now, what i really want to do is:
+1. start from the root node and display all memos
