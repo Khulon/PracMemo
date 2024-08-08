@@ -34,6 +34,7 @@ function CanvasScreen() {
   const zoomableViewRef = useRef(null);
   const bottomSheetModalRef = useRef(null);
   const memoSheetModalRef = useRef(null);
+  const [selectedMemo, setSelectedMemo] = useState(null);
 
   const snapPoints = useMemo(() => ["25%", "50%"], []);
 
@@ -293,17 +294,60 @@ function CanvasScreen() {
                   <ScrollView
                     showsHorizontalScrollIndicator={false}
                     horizontal
-                    contentContainerStyle={{ gap: 20 }}
                     style={{ margin: 10 }}
                   >
                     {selectedNode.memo_ids &&
                       getMemoNames(selectedNode.memo_ids).map((name) => (
-                        <View style={{ height: 50, width: 100, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: 'lightgray', borderWidth: '2', borderColor: 'gray' }} key={name}>
-                          <Text >{name}</Text>
-                        </View>
+                        <TouchableOpacity
+                          key={name}
+                          onPress={() => setSelectedMemo(name)}
+                          style={{
+                            margin:10,
+                            height: 50,
+                            width: 100,
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            backgroundColor: 'lightgray',
+                            borderWidth: 2,
+                            borderColor: selectedMemo === name ? 'blue' : 'gray',
+                            position: 'relative', // Needed for absolute positioning of the red circle
+                          }}
+                        >
+                          <Text>{name}</Text>
+                          {selectedMemo === name && (
+                            <View
+                              style={{
+                                height: 20,
+                                width: 20,
+                                borderRadius: 10,
+                                backgroundColor: 'red',
+                                position: 'absolute',
+                                top: -10,
+                                right: -10,
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <Text style={{ color: 'white', fontWeight: 'bold' }}>X</Text>
+                            </View>
+                          )}
+                        </TouchableOpacity>
                       ))}
                     <TouchableOpacity
-                      style={{ height: 50, width: 100, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: 'lightgray', borderWidth: '2', borderColor: 'gray', borderRadius: 1, borderStyle: 'dashed', }}
+                      style={{
+                        margin:10,
+                        height: 50,
+                        width: 100,
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        backgroundColor: 'lightgray',
+                        borderWidth: 2,
+                        borderColor: 'gray',
+                        borderRadius: 1,
+                        borderStyle: 'dashed',
+                      }}
                       onPress={openMemoSelection}
                     >
                       <Text style={{ color: 'green' }}>
