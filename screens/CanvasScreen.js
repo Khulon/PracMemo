@@ -40,10 +40,6 @@ function CanvasScreen() {
 
 
   const fetchTreeData = async () => {
-    if (!treeData || Object.keys(treeData).length === 0) {
-      console.log("initiatlising")
-      initializeRootNode()
-    }
     try {
       const jsonString = await FileSystem.readAsStringAsync(treeDataFilePath);
       const data = JSON.parse(jsonString);
@@ -51,6 +47,8 @@ function CanvasScreen() {
       setTreeData(data);
     } catch (error) {
       setError('Failed to load tree data');
+      console.log("initiatlising")
+      initializeRootNode()
     }
   };
 

@@ -75,7 +75,6 @@ export default function PlayScreen() {
   const playMemo = async (memoId) => {
     try {
       if (sound) {
-        console.log('Stopping previous sound');
         await sound.stopAsync();
         await sound.unloadAsync();
       }
@@ -92,11 +91,9 @@ export default function PlayScreen() {
         return;
       }
   
-      console.log('Loading new sound from URI:', recording.uri);
       const { sound: newSound, status } = await Audio.Sound.createAsync({ uri: recording.uri });
   
       if (status.isLoaded) {
-        console.log('Sound loaded successfully');
         setSound(newSound);
         await newSound.playAsync();
         
@@ -114,7 +111,6 @@ export default function PlayScreen() {
     }
   };
   
-
   const findNodeById = (node, id) => {
     if (node.key === id) return node;
     if (node.children) {
@@ -143,56 +139,45 @@ export default function PlayScreen() {
     });
   };
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>{error}</Text>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <ScrollView
         ref={scrollViewRef}
         contentContainerStyle={styles.scrollViewContent}
-        style={{paddingBottom:10}}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.scrollViewInner}>
-          {currentNode?.memos && currentNode.memos.length > 0 ? (
-            currentNode.memos.map(memo => {
-              const recording = recordings.find(r => r.id === memo.id);
-              return (
-                <TouchableOpacity
-                  key={memo.id}
-                  onPress={() => playMemo(memo.id)}
-                  style={styles.memoButton}
-                >
-                  <Text style={styles.memoText}>
-                    {recording ? recording.name : `Memo ID: ${memo.id}`}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })
-          ) : (
-            <Text style={{transform: [{ scaleY: -1 }],}}>No memos available</Text>
-          )}
-        </View>
+        {loading ? (
+          <ActivityIndicator size="large" color="#0000ff" />
+        ) : error ? (
+          <Text style={styles.errorText}>{error}</Text>
+        ) : (
+          <View style={styles.scrollViewInner}>
+            {currentNode?.memos && currentNode.memos.length > 0 ? (
+              currentNode.memos.map(memo => {
+                const recording = recordings.find(r => r.id === memo.id);
+                return (
+                  <TouchableOpacity
+                    key={memo.id}
+                    onPress={() => playMemo(memo.id)}
+                    style={styles.memoButton}
+                  >
+                    <Text style={styles.memoText}>
+                      {recording ? recording.name : `Memo ID: ${memo.id}`}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })
+            ) : (
+              <Text style={{transform: [{ scaleY: -1 }],}}>No memos available</Text>
+            )}
+          </View>
+        )}
       </ScrollView>
       <Text style={styles.header}>Current Node: {currentNode?.name || 'Loading...'}</Text>
 
-        <TouchableOpacity
+      <TouchableOpacity
         onPress={parentNode ? goBack : null}
         style={[styles.backButton, !parentNode && styles.backButtonDisabled]}
         disabled={!parentNode}
