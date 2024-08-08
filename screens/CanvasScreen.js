@@ -209,19 +209,19 @@ function CanvasScreen() {
   const selectMemo = async (memo) => {
     if (selectedNode) {
       selectedNode.memos = selectedNode.memos || [];
-      
+
       // Check if the memo id already exists
       const memoExists = selectedNode.memos.some(existingMemo => existingMemo.id === memo.id);
-  
+
       if (memoExists) {
         // Handle the error (e.g., show a message or throw an error)
         console.error("Memo with this ID already exists.");
         return; // Exit the function early if memo exists
       }
-  
+
       // Add the new memo if it does not exist
-      selectedNode.memos.push({ id: memo.id });
-  
+      selectedNode.memos.push({ id: memo.id, connected_node_id: null });
+
       try {
         await FileSystem.writeAsStringAsync(
           treeDataFilePath,
@@ -260,6 +260,38 @@ function CanvasScreen() {
       }
     }
   };
+
+  const updateMemoConnection = async (selectedMemoId, selectedChildNodeId) => {
+    if (selectedNode) {
+      // Ensure selectedNode.memos is initialized
+      selectedNode.memos = selectedNode.memos || [];
+
+      // Find the memo to update
+      const memoIndex = selectedNode.memos.findIndex(memo => memo.id === selectedMemoId);
+
+      if (memoIndex === -1) {
+        // Handle the error if the memo is not found
+        console.error("Memo with this ID does not exist.");
+        return; // Exit the function early if memo not found
+      }
+
+      // Update the connected_node_id for the selected memo
+      selectedNode.memos[memoIndex].connected_node_id = selectedChildNodeId;
+
+      try {
+        // Write the updated tree data to the file
+        await FileSystem.writeAsStringAsync(
+          treeDataFilePath,
+          JSON.stringify(treeData)
+        );
+        setTreeData({ ...treeData }); // Update the state with the new tree data
+        console.log("Memo connection updated successfully");
+      } catch (error) {
+        console.error("Error updating memo connection:", error);
+      }
+    }
+  };
+
 
   return (
     <BottomSheetModalProvider>
@@ -333,10 +365,10 @@ function CanvasScreen() {
                     style={{ margin: 10 }}
                   >
                     {selectedNode.memos &&
-                      getMemoNames(selectedNode.memos.map(memo => memo.id)).map((name, index) => (
+                      selectedNode.memos.map((memo) => (
                         <TouchableOpacity
-                          key={name}
-                          onPress={() => setSelectedMemo(name)}
+                          key={memo.id}
+                          onPress={() => setSelectedMemo(memo)}
                           style={{
                             margin: 10,
                             height: 50,
@@ -346,14 +378,14 @@ function CanvasScreen() {
                             alignItems: 'center',
                             backgroundColor: 'lightgray',
                             borderWidth: 2,
-                            borderColor: selectedMemo === name ? 'blue' : 'gray',
+                            borderColor: selectedMemo?.id === memo.id ? 'blue' : 'gray',
                             position: 'relative',
                           }}
                         >
-                          <Text>{name}</Text>
-                          {selectedMemo === name && (
+                          <Text>{getMemoNames([memo.id])}</Text>
+                          {selectedMemo?.id === memo.id && (
                             <TouchableOpacity
-                              onPress={() => removeMemo(selectedNode.memos[index].id)}
+                              onPress={() => removeMemo(memo.id)}
                               style={{
                                 height: 20,
                                 width: 20,
@@ -387,9 +419,7 @@ function CanvasScreen() {
                       }}
                       onPress={openMemoSelection}
                     >
-                      <Text style={{ color: 'green' }}>
-                        Add Memo
-                      </Text>
+                      <Text style={{ color: 'green' }}>Add Memo</Text>
                     </TouchableOpacity>
                   </ScrollView>
 
@@ -401,7 +431,13 @@ function CanvasScreen() {
                   >
                     {selectedNode.children &&
                       selectedNode.children.map((child) => (
-                        <View
+                        <TouchableOpacity
+                          key={child.key}
+                          onPress={() => {
+                            if (selectedMemo?.id) {
+                              updateMemoConnection(selectedMemo.id, child.key);
+                            }
+                          }}
                           style={{
                             height: 50,
                             width: 100,
@@ -410,12 +446,11 @@ function CanvasScreen() {
                             alignItems: 'center',
                             backgroundColor: 'lightgray',
                             borderWidth: 2,
-                            borderColor: 'gray',
+                            borderColor: selectedNode.memos?.some(memo => memo.id === selectedMemo?.id && memo.connected_node_id === child.key) ? 'blue' : 'gray',
                           }}
-                          key={child.key}
                         >
                           <Text>{child.name}</Text>
-                        </View>
+                        </TouchableOpacity>
                       ))}
                     <TouchableOpacity
                       style={{
@@ -435,6 +470,9 @@ function CanvasScreen() {
                       <Text style={{ color: 'green' }}>Add Node</Text>
                     </TouchableOpacity>
                   </ScrollView>
+
+
+
                 </>
               )}
             </ScrollView>
