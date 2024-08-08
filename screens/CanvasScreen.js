@@ -208,9 +208,20 @@ function CanvasScreen() {
 
   const selectMemo = async (memo) => {
     if (selectedNode) {
-      selectedNode.memo_ids = selectedNode.memo_ids || [];
-      selectedNode.memo_ids.push(memo.id);
-
+      selectedNode.memos = selectedNode.memos || [];
+      
+      // Check if the memo id already exists
+      const memoExists = selectedNode.memos.some(existingMemo => existingMemo.id === memo.id);
+  
+      if (memoExists) {
+        // Handle the error (e.g., show a message or throw an error)
+        console.error("Memo with this ID already exists.");
+        return; // Exit the function early if memo exists
+      }
+  
+      // Add the new memo if it does not exist
+      selectedNode.memos.push({ id: memo.id });
+  
       try {
         await FileSystem.writeAsStringAsync(
           treeDataFilePath,
@@ -224,17 +235,16 @@ function CanvasScreen() {
       memoSheetModalRef.current?.dismiss();
     }
   };
-
   const removeMemo = async (memoId) => {
     if (selectedNode) {
-      selectedNode.memo_ids = selectedNode.memo_ids || [];
+      selectedNode.memos = selectedNode.memos || [];
 
       // Find the index of the memo to remove
-      const memoIndex = selectedNode.memo_ids.indexOf(memoId);
+      const memoIndex = selectedNode.memos.findIndex((memo) => memo.id === memoId);
 
       if (memoIndex > -1) {
         // Remove the memo from the array
-        selectedNode.memo_ids.splice(memoIndex, 1);
+        selectedNode.memos.splice(memoIndex, 1);
 
         try {
           // Write the updated tree data to the file
@@ -250,7 +260,6 @@ function CanvasScreen() {
       }
     }
   };
-
 
   return (
     <BottomSheetModalProvider>
@@ -323,8 +332,8 @@ function CanvasScreen() {
                     horizontal
                     style={{ margin: 10 }}
                   >
-                    {selectedNode.memo_ids &&
-                      getMemoNames(selectedNode.memo_ids).map((name, index) => (
+                    {selectedNode.memos &&
+                      getMemoNames(selectedNode.memos.map(memo => memo.id)).map((name, index) => (
                         <TouchableOpacity
                           key={name}
                           onPress={() => setSelectedMemo(name)}
@@ -344,7 +353,7 @@ function CanvasScreen() {
                           <Text>{name}</Text>
                           {selectedMemo === name && (
                             <TouchableOpacity
-                              onPress={() => removeMemo(selectedNode.memo_ids[index])}
+                              onPress={() => removeMemo(selectedNode.memos[index].id)}
                               style={{
                                 height: 20,
                                 width: 20,
@@ -383,6 +392,7 @@ function CanvasScreen() {
                       </Text>
                     </TouchableOpacity>
                   </ScrollView>
+
                   <ScrollView
                     showsHorizontalScrollIndicator={false}
                     horizontal
