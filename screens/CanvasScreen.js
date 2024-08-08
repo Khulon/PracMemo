@@ -288,14 +288,28 @@ function CanvasScreen() {
               {selectedNode && (
                 <>
                   <Text style={styles.nodeTitle}>{selectedNode.name}</Text>
-                  <Text style={{ fontSize: 12 }}>
-                    {selectedNode?.memo_ids &&
-                      getMemoNames(selectedNode.memo_ids).join(", ")}
-                  </Text>
+                  <ScrollView
+                    horizontal
+                    contentContainerStyle={{gap:20}}
+                  >
+                    {selectedNode.memo_ids &&
+                      getMemoNames(selectedNode.memo_ids).map((name) => (
+                        <View style={{ height: 50, width: 100, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: 'lightgray', borderWidth: '2', borderColor: 'gray' }} key={name}>
+                          <Text >{name}</Text>
+                        </View>
+                      ))}
+                    <TouchableOpacity
+                      style={{ height: 50, width: 100, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: 'lightgray', borderWidth: '2', borderColor: 'gray', borderRadius:1, borderStyle: 'dashed', }}
+                      onPress={openMemoSelection}
+                    >
+                      <Text style={{color:'green'}}>
+                        Add Memo
+                      </Text>
+                    </TouchableOpacity>
+                  </ScrollView>
 
                   <Button title="Add Node" onPress={addNodeToSelectedNode} />
-                  <Button title="Delete Node" color="red" onPress={deleteSelectedNode}/>
-                  <Button title="Add Memo" color='green' onPress={openMemoSelection} />
+                  <Button title="Delete Node" color="red" onPress={deleteSelectedNode} />
                 </>
               )}
             </ScrollView>
