@@ -186,7 +186,7 @@ export default function PlayScreen() {
               );
             })
           ) : (
-            <Text>No memos available</Text>
+            <Text style={{transform: [{ scaleY: -1 }],}}>No memos available</Text>
           )}
         </View>
       </ScrollView>
