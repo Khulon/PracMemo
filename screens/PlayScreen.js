@@ -1,22 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Button, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
-import * as FileSystem from 'expo-file-system';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+  RefreshControl,
+  Platform
+} from 'react-native';
 import { Audio } from 'expo-av';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import * as FileSystem from 'expo-file-system';
 
 const treeDataFilePath = FileSystem.documentDirectory + 'treeData.json';
 const recordingsFileUri = FileSystem.documentDirectory + 'recordings.json';
 
-const PlayScreen = () => {
+export default function PlayScreen() {
   const [treeData, setTreeData] = useState(null);
   const [recordings, setRecordings] = useState([]);
   const [currentNode, setCurrentNode] = useState(null);
   const [parentNode, setParentNode] = useState(null);
-  const [nodeStack, setNodeStack] = useState([]); // Stack for navigation history
+  const [nodeStack, setNodeStack] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [sound, setSound] = useState(null); // State to manage current playing sound
-  const [speakerMode, setSpeakerMode] = useState(true); // Default to speaker mode
+  const [speakerMode, setSpeakerMode] = useState(false);
+  const [sound, setSound] = useState(null);
+  const scrollViewRef = useRef(null);
 
   const fetchTreeData = async () => {
     try {
@@ -24,7 +35,7 @@ const PlayScreen = () => {
       const jsonString = await FileSystem.readAsStringAsync(treeDataFilePath);
       const data = JSON.parse(jsonString);
       setTreeData(data);
-      setCurrentNode(data); // Set initial node to root
+      setCurrentNode(data);
     } catch (error) {
       setError('Failed to load tree data');
     } finally {
@@ -48,30 +59,13 @@ const PlayScreen = () => {
   useEffect(() => {
     fetchTreeData();
     fetchRecordings();
-    return () => {
-      // Clean up the sound when the component unmounts
-      if (sound) {
-        sound.unloadAsync();
-      }
-    };
   }, []);
 
   useEffect(() => {
-    setAudioMode();
-  }, [speakerMode]);
-
-  const setAudioMode = async () => {
-    try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-        playThroughEarpieceAndroid: !speakerMode,
-        staysActiveInBackground: true,
-      });
-    } catch (error) {
-      console.error('Failed to set audio mode', error);
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollToEnd({ animated: false });
     }
-  };
+  }, [currentNode]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -80,7 +74,6 @@ const PlayScreen = () => {
 
   const playMemo = async (memoId) => {
     try {
-      // Stop any currently playing sound
       if (sound) {
         await sound.stopAsync();
         await sound.unloadAsync();
@@ -98,17 +91,14 @@ const PlayScreen = () => {
         return;
       }
 
-      // Load and play the new recording
       const { sound: newSound } = await Audio.Sound.createAsync({ uri: recording.uri });
       setSound(newSound);
       await newSound.playAsync();
 
-      // Move to the connected node
       const nextNode = findNodeById(treeData, memo.connected_node_id);
       if (nextNode) {
-        // Update stack and set the new node
         setNodeStack(prevStack => [...prevStack, currentNode]);
-        setParentNode(currentNode); // Set the parent node
+        setParentNode(currentNode);
         setCurrentNode(nextNode);
       }
     } catch (error) {
@@ -131,12 +121,17 @@ const PlayScreen = () => {
     if (nodeStack.length > 0) {
       const previousNode = nodeStack.pop();
       setCurrentNode(previousNode);
-      setParentNode(nodeStack[nodeStack.length - 1] || null); // Update parent node
+      setParentNode(nodeStack[nodeStack.length - 1] || null);
     }
   };
 
-  const toggleSpeakerMode = () => {
-    setSpeakerMode(prev => !prev);
+  const toggleSpeakerMode = async () => {
+    setSpeakerMode(prevMode => !prevMode);
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      playsInSilentModeIOS: true,
+      playThroughEarpieceAndroid: !speakerMode,
+    });
   };
 
   if (loading) {
@@ -157,42 +152,47 @@ const PlayScreen = () => {
 
   return (
     <View style={styles.container}>
-      {parentNode && (
-        <Button title="Back" onPress={goBack} />
-      )}
-      <Button
-        title={`Speaker Mode: ${speakerMode ? 'On' : 'Off'}`}
-        onPress={toggleSpeakerMode}
-        style={styles.speakerButton}
-      />
-      <Text style={styles.header}>Current Node: {currentNode?.name || 'Loading...'}</Text>
       <ScrollView
+        ref={scrollViewRef}
+        contentContainerStyle={styles.scrollViewContent}
+        style={{paddingBottom:10}}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {currentNode?.memos && currentNode.memos.length > 0 ? (
-          currentNode.memos.map(memo => {
-            const recording = recordings.find(r => r.id === memo.id);
-            return (
-              <TouchableOpacity
-                key={memo.id}
-                onPress={() => playMemo(memo.id)}
-                style={styles.memoButton}
-              >
-                <Text style={styles.memoText}>
-                  {recording ? recording.name : `Memo ID: ${memo.id}`}
-                </Text>
-              </TouchableOpacity>
-            );
-          })
-        ) : (
-          <Text>No memos available</Text>
-        )}
+        <View style={styles.scrollViewInner}>
+          {currentNode?.memos && currentNode.memos.length > 0 ? (
+            currentNode.memos.map(memo => {
+              const recording = recordings.find(r => r.id === memo.id);
+              return (
+                <TouchableOpacity
+                  key={memo.id}
+                  onPress={() => playMemo(memo.id)}
+                  style={styles.memoButton}
+                >
+                  <Text style={styles.memoText}>
+                    {recording ? recording.name : `Memo ID: ${memo.id}`}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })
+          ) : (
+            <Text>No memos available</Text>
+          )}
+        </View>
       </ScrollView>
+      <Text style={styles.header}>Current Node: {currentNode?.name || 'Loading...'}</Text>
+      {parentNode && (
+        <TouchableOpacity onPress={goBack} style={styles.backButton}>
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+      )}
+      <TouchableOpacity onPress={toggleSpeakerMode} style={styles.speakerButton}>
+        <Icon name={speakerMode ? 'volume-up' : 'volume-off'} size={30} color="#000" />
+      </TouchableOpacity>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -212,13 +212,32 @@ const styles = StyleSheet.create({
   },
   memoText: {
     fontSize: 16,
+    transform: [{ scaleY: -1 }],
+  },
+  backButton: {
+    padding: 10,
+    backgroundColor: '#007bff',
+    borderRadius: 5,
+    marginVertical: 10,
+    alignItems: 'center',
+  },
+  backButtonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  speakerButton: {
+    padding: 10,
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  scrollViewContent: {
+    flexGrow: 1,
+  },
+  scrollViewInner: {
+    transform: [{ scaleY: -1 }],
+    flex: 1,
   },
   errorText: {
     color: 'red',
   },
-  speakerButton: {
-    marginVertical: 10,
-  },
 });
-
-export default PlayScreen;
