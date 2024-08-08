@@ -38,37 +38,36 @@ const TreeGraph = ({ treeData, selectedNode, onRootNodePosition, onNodePress, in
 
   useEffect(() => {
     // Check if treeData is empty and initialize it with a root node if necessary
-    if (!treeData || Object.keys(treeData).length === 0) {
-      console.log('asdasd')
-      initializeRootNode()
-    }
-
-    const { width, height } = calculateGraphDimensions(treeData);
-    const positions = calculateNodePositions(treeData);
-
-    const flatPositions = [];
-    Object.keys(positions).forEach(level => {
-      const nodes = positions[level];
-      const totalNodes = nodes.length;
-      const horizontalSpacing = width / (totalNodes + 1);
-
-      nodes.forEach(({ node, siblingIndex }, index) => {
-        const x = horizontalSpacing * (index + 1);
-        const y = verticalSpacing * level + 50;
-        flatPositions.push({ node, x, y });
+    if (treeData || Object.keys(treeData).length > 0) {
+      const { width, height } = calculateGraphDimensions(treeData);
+      const positions = calculateNodePositions(treeData);
+  
+      const flatPositions = [];
+      Object.keys(positions).forEach(level => {
+        const nodes = positions[level];
+        const totalNodes = nodes.length;
+        const horizontalSpacing = width / (totalNodes + 1);
+  
+        nodes.forEach(({ node, siblingIndex }, index) => {
+          const x = horizontalSpacing * (index + 1);
+          const y = verticalSpacing * level + 50;
+          flatPositions.push({ node, x, y });
+        });
       });
-    });
-
-    console.log('Flat Positions:', flatPositions);
-
-    const rootNode = flatPositions.find(pos => pos.node.name === 'Root');
-    if (rootNode && onRootNodePosition) {
-      const newPosition = { x: rootNode.x, y: rootNode.y };
-      if (!previousRootPosition.current || (previousRootPosition.current.x !== newPosition.x || previousRootPosition.current.y !== newPosition.y)) {
-        onRootNodePosition(newPosition);
-        previousRootPosition.current = newPosition;
+  
+      console.log('Flat Positions:', flatPositions);
+  
+      const rootNode = flatPositions.find(pos => pos.node.name === 'Root');
+      if (rootNode && onRootNodePosition) {
+        const newPosition = { x: rootNode.x, y: rootNode.y };
+        if (!previousRootPosition.current || (previousRootPosition.current.x !== newPosition.x || previousRootPosition.current.y !== newPosition.y)) {
+          onRootNodePosition(newPosition);
+          previousRootPosition.current = newPosition;
+        }
       }
     }
+
+    
   }, [treeData, onRootNodePosition]);
 
   const handleNodePress = (node) => {
@@ -76,7 +75,7 @@ const TreeGraph = ({ treeData, selectedNode, onRootNodePosition, onNodePress, in
   };
 
   const renderNode = (node, x, y) => (
-    <G key={node.key}>
+    <G key={`node-${node.key}-${x}-${y}`}>
       <Rect
         x={x - nodeSize / 2}
         y={y - nodeSize / 2}
@@ -91,14 +90,14 @@ const TreeGraph = ({ treeData, selectedNode, onRootNodePosition, onNodePress, in
       </SvgText>
     </G>
   );
-
+  
   const renderLines = (flatPositions) => {
     return flatPositions.flatMap(({ node, x, y }) => {
       return node.children ? node.children.flatMap((child, index) => {
-        const childPosition = flatPositions.find(pos => pos.node === child);
+        const childPosition = flatPositions.find(pos => pos.node.key === child.key);
         return childPosition ? (
           <Line
-            key={`line-${node.key}-${child.name}-${index}`}
+            key={`line-${node.key}-${child.key}-${index}`}
             x1={x}
             y1={y + nodeSize / 2}
             x2={childPosition.x}
@@ -109,6 +108,7 @@ const TreeGraph = ({ treeData, selectedNode, onRootNodePosition, onNodePress, in
       }) : [];
     });
   };
+  
 
   if (!treeData) {
     return null;

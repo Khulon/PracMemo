@@ -38,6 +38,22 @@ function CanvasScreen() {
 
   const snapPoints = useMemo(() => ["25%", "50%"], []);
 
+
+  const fetchTreeData = async () => {
+    if (!treeData || Object.keys(treeData).length === 0) {
+      console.log("initiatlising")
+      initializeRootNode()
+    }
+    try {
+      const jsonString = await FileSystem.readAsStringAsync(treeDataFilePath);
+      const data = JSON.parse(jsonString);
+      console.log(data)
+      setTreeData(data);
+    } catch (error) {
+      setError('Failed to load tree data');
+    }
+  };
+
   const fetchRecordings = async () => {
     setIsLoading(true);
     try {
@@ -60,6 +76,7 @@ function CanvasScreen() {
 
   useEffect(() => {
     fetchRecordings();
+    fetchTreeData();
   }, []);
 
   const handleRootNodePosition = (position) => {
