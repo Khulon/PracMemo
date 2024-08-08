@@ -15,6 +15,8 @@ const PlayScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [sound, setSound] = useState(null); // State to manage current playing sound
+  const [speakerMode, setSpeakerMode] = useState(false); // State for speaker mode
 
   const fetchTreeData = async () => {
     try {
@@ -48,6 +50,15 @@ const PlayScreen = () => {
     fetchRecordings();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      // Clean up the sound when the component unmounts
+      if (sound) {
+        sound.unloadAsync();
+      }
+    };
+  }, [sound]);
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchTreeData();
@@ -55,6 +66,12 @@ const PlayScreen = () => {
 
   const playMemo = async (memoId) => {
     try {
+      // Stop any currently playing sound
+      if (sound) {
+        await sound.stopAsync();
+        await sound.unloadAsync();
+      }
+
       const memo = currentNode.memos.find(m => m.id === memoId);
       if (!memo) {
         console.error('Memo not found');
@@ -67,8 +84,10 @@ const PlayScreen = () => {
         return;
       }
 
-      const { sound } = await Audio.Sound.createAsync({ uri: recording.uri });
-      await sound.playAsync();
+      // Load and play the new recording
+      const { sound: newSound } = await Audio.Sound.createAsync({ uri: recording.uri });
+      setSound(newSound);
+      await newSound.playAsync();
 
       // Move to the connected node
       const nextNode = findNodeById(treeData, memo.connected_node_id);
@@ -102,6 +121,21 @@ const PlayScreen = () => {
     }
   };
 
+  const toggleSpeakerMode = async () => {
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldDuckAndroid: !speakerMode,
+        playThroughEarpieceAndroid: !speakerMode,
+      });
+      setSpeakerMode(!speakerMode);
+    } catch (error) {
+      console.error('Failed to toggle speaker mode', error);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -123,6 +157,11 @@ const PlayScreen = () => {
       {parentNode && (
         <Button title="Back" onPress={goBack} />
       )}
+      <Button
+        title={`Speaker Mode: ${speakerMode ? 'On' : 'Off'}`}
+        onPress={toggleSpeakerMode}
+        style={styles.speakerButton}
+      />
       <Text style={styles.header}>Current Node: {currentNode?.name || 'Loading...'}</Text>
       <ScrollView
         refreshControl={
@@ -173,6 +212,9 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: 'red',
+  },
+  speakerButton: {
+    marginVertical: 10,
   },
 });
 
