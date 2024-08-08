@@ -75,36 +75,45 @@ export default function PlayScreen() {
   const playMemo = async (memoId) => {
     try {
       if (sound) {
+        console.log('Stopping previous sound');
         await sound.stopAsync();
         await sound.unloadAsync();
       }
-
+  
       const memo = currentNode.memos.find(m => m.id === memoId);
       if (!memo) {
         console.error('Memo not found');
         return;
       }
-
+  
       const recording = recordings.find(r => r.id === memo.id);
       if (!recording) {
         console.error('Recording not found');
         return;
       }
-
-      const { sound: newSound } = await Audio.Sound.createAsync({ uri: recording.uri });
-      setSound(newSound);
-      await newSound.playAsync();
-
-      const nextNode = findNodeById(treeData, memo.connected_node_id);
-      if (nextNode) {
-        setNodeStack(prevStack => [...prevStack, currentNode]);
-        setParentNode(currentNode);
-        setCurrentNode(nextNode);
+  
+      console.log('Loading new sound from URI:', recording.uri);
+      const { sound: newSound, status } = await Audio.Sound.createAsync({ uri: recording.uri });
+  
+      if (status.isLoaded) {
+        console.log('Sound loaded successfully');
+        setSound(newSound);
+        await newSound.playAsync();
+        
+        const nextNode = findNodeById(treeData, memo.connected_node_id);
+        if (nextNode) {
+          setNodeStack(prevStack => [...prevStack, currentNode]);
+          setParentNode(currentNode);
+          setCurrentNode(nextNode);
+        }
+      } else {
+        console.error('Sound failed to load', status);
       }
     } catch (error) {
       console.error('Failed to play audio', error);
     }
   };
+  
 
   const findNodeById = (node, id) => {
     if (node.key === id) return node;
@@ -182,11 +191,15 @@ export default function PlayScreen() {
         </View>
       </ScrollView>
       <Text style={styles.header}>Current Node: {currentNode?.name || 'Loading...'}</Text>
-      {parentNode && (
-        <TouchableOpacity onPress={goBack} style={styles.backButton}>
-          <Text style={styles.backButtonText}>Back</Text>
-        </TouchableOpacity>
-      )}
+
+        <TouchableOpacity
+        onPress={parentNode ? goBack : null}
+        style={[styles.backButton, !parentNode && styles.backButtonDisabled]}
+        disabled={!parentNode}
+      >
+        <Text style={styles.backButtonText}>Back</Text>
+      </TouchableOpacity>
+      
       <TouchableOpacity onPress={toggleSpeakerMode} style={styles.speakerButton}>
         <Icon name={speakerMode ? 'volume-up' : 'volume-off'} size={30} color="#000" />
       </TouchableOpacity>
@@ -198,6 +211,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 10,
+  },
+  backButtonDisabled: {
+    backgroundColor: '#ccc', // Grey background for disabled button
+    borderColor: '#999', // Optional: change border color if applicable
   },
   header: {
     fontSize: 18,
