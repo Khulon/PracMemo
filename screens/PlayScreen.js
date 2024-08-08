@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Button, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import { Audio } from 'expo-av';
 
 const treeDataFilePath = FileSystem.documentDirectory + 'treeData.json';
-const recordingsFilePath = FileSystem.documentDirectory + 'recordings.json';
+const recordingsFileUri = FileSystem.documentDirectory + 'recordings.json';
 
 const PlayScreen = () => {
   const [treeData, setTreeData] = useState(null);
@@ -15,70 +15,78 @@ const PlayScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
+    const fetchTreeData = async () => {
+      try {
+        setLoading(true);
+        const jsonString = await FileSystem.readAsStringAsync(treeDataFilePath);
+        const data = JSON.parse(jsonString);
+        setTreeData(data);
+        setCurrentNode(data); // Set initial node to root
+      } catch (error) {
+        setError('Failed to load tree data');
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    };
+
+    const fetchRecordings = async () => {
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(recordingsFileUri);
+        if (fileInfo.exists) {
+          const jsonString = await FileSystem.readAsStringAsync(recordingsFileUri);
+          setRecordings(JSON.parse(jsonString));
+        }
+      } catch (error) {
+        console.error('Failed to load recordings', error);
+      }
+    };
+
     fetchTreeData();
     fetchRecordings();
   }, []);
 
-  const fetchTreeData = async () => {
-    try {
-      setLoading(true);
-      const jsonString = await FileSystem.readAsStringAsync(treeDataFilePath);
-      const data = JSON.parse(jsonString);
-      setTreeData(data);
-      setCurrentNode(data); // Start with the root node
-    } catch (error) {
-      setError('Failed to load tree data');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const fetchRecordings = async () => {
-    try {
-      const fileInfo = await FileSystem.getInfoAsync(recordingsFilePath);
-      if (fileInfo.exists) {
-        const fileContent = await FileSystem.readAsStringAsync(recordingsFilePath);
-        setRecordings(JSON.parse(fileContent));
-      }
-    } catch (error) {
-      console.error('Failed to load recordings', error);
-    }
-  };
-
   const onRefresh = () => {
     setRefreshing(true);
     fetchTreeData();
-    fetchRecordings();
   };
 
-  const findRecordingUri = (id) => {
-    const recording = recordings.find(recording => recording.id === id);
-    return recording ? recording.uri : null;
-  };
-
-  const handleMemoPress = async (memo) => {
-    const uri = findRecordingUri(memo.id);
-    if (!uri) {
-      console.error('Memo URI is missing for memo ID:', memo.id);
-      return;
-    }
-    await playAudio(uri);
-
-    // Find the connected node
-    const connectedNode = treeData.children.find(child => child.key === memo.connected_node_id);
-    if (connectedNode) {
-      setCurrentNode(connectedNode);
-    }
-  };
-
-  const playAudio = async (uri) => {
+  const playMemo = async (memoId) => {
     try {
-      const { sound } = await Audio.Sound.createAsync({ uri });
+      const memo = currentNode.memos.find(m => m.id === memoId);
+      if (!memo) {
+        console.error('Memo not found');
+        return;
+      }
+
+      const recording = recordings.find(r => r.id === memo.id);
+      if (!recording) {
+        console.error('Recording not found');
+        return;
+      }
+
+      const { sound } = await Audio.Sound.createAsync({ uri: recording.uri });
       await sound.playAsync();
+
+      // Move to the connected node
+      const nextNode = findNodeById(treeData, memo.connected_node_id);
+      if (nextNode) {
+        setCurrentNode(nextNode);
+      }
     } catch (error) {
       console.error('Failed to play audio', error);
     }
+  };
+
+  const findNodeById = (node, id) => {
+    if (node.key === id) return node;
+    if (node.children) {
+      for (let child of node.children) {
+        const result = findNodeById(child, id);
+        if (result) return result;
+      }
+    }
+    return null;
   };
 
   if (loading) {
@@ -97,35 +105,34 @@ const PlayScreen = () => {
     );
   }
 
-  const renderMemos = (node) => {
-    return (
-      <View key={node.key} style={styles.nodeContainer}>
-        {node.memos && node.memos.length > 0 && (
-          <ScrollView style={styles.memosContainer}>
-            {node.memos.map(memo => (
+  return (
+    <View style={styles.container}>
+      <Text style={styles.header}>Current Node: {currentNode.name}</Text>
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {currentNode.memos && currentNode.memos.length > 0 ? (
+          currentNode.memos.map(memo => {
+            const recording = recordings.find(r => r.id === memo.id);
+            return (
               <TouchableOpacity
                 key={memo.id}
-                onPress={() => handleMemoPress(memo)}
+                onPress={() => playMemo(memo.id)}
                 style={styles.memoButton}
               >
-                <Text style={styles.memoText}>Memo ID: {memo.id}</Text>
+                <Text style={styles.memoText}>
+                  {recording ? recording.name : `Memo ID: ${memo.id}`}
+                </Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
+            );
+          })
+        ) : (
+          <Text>No memos available</Text>
         )}
-      </View>
-    );
-  };
-
-  return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      {currentNode && renderMemos(currentNode)}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
@@ -134,17 +141,16 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 10,
   },
-  nodeContainer: {
-    marginVertical: 10,
-  },
-  memosContainer: {
-    marginTop: 10,
+  header: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
   },
   memoButton: {
     padding: 10,
-    marginVertical: 5,
-    backgroundColor: 'lightgray',
+    backgroundColor: '#ddd',
     borderRadius: 5,
+    marginVertical: 5,
   },
   memoText: {
     fontSize: 16,
