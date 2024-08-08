@@ -225,6 +225,33 @@ function CanvasScreen() {
     }
   };
 
+  const removeMemo = async (memoId) => {
+    if (selectedNode) {
+      selectedNode.memo_ids = selectedNode.memo_ids || [];
+
+      // Find the index of the memo to remove
+      const memoIndex = selectedNode.memo_ids.indexOf(memoId);
+
+      if (memoIndex > -1) {
+        // Remove the memo from the array
+        selectedNode.memo_ids.splice(memoIndex, 1);
+
+        try {
+          // Write the updated tree data to the file
+          await FileSystem.writeAsStringAsync(
+            treeDataFilePath,
+            JSON.stringify(treeData)
+          );
+          setTreeData({ ...treeData });
+          console.log("Memo removed successfully");
+        } catch (error) {
+          console.error("Error removing memo:", error);
+        }
+      }
+    }
+  };
+
+
   return (
     <BottomSheetModalProvider>
       <View style={{ flex: 1 }}>
@@ -297,12 +324,12 @@ function CanvasScreen() {
                     style={{ margin: 10 }}
                   >
                     {selectedNode.memo_ids &&
-                      getMemoNames(selectedNode.memo_ids).map((name) => (
+                      getMemoNames(selectedNode.memo_ids).map((name, index) => (
                         <TouchableOpacity
                           key={name}
                           onPress={() => setSelectedMemo(name)}
                           style={{
-                            margin:10,
+                            margin: 10,
                             height: 50,
                             width: 100,
                             display: 'flex',
@@ -311,12 +338,13 @@ function CanvasScreen() {
                             backgroundColor: 'lightgray',
                             borderWidth: 2,
                             borderColor: selectedMemo === name ? 'blue' : 'gray',
-                            position: 'relative', // Needed for absolute positioning of the red circle
+                            position: 'relative',
                           }}
                         >
                           <Text>{name}</Text>
                           {selectedMemo === name && (
-                            <View
+                            <TouchableOpacity
+                              onPress={() => removeMemo(selectedNode.memo_ids[index])}
                               style={{
                                 height: 20,
                                 width: 20,
@@ -330,13 +358,13 @@ function CanvasScreen() {
                               }}
                             >
                               <Text style={{ color: 'white', fontWeight: 'bold' }}>X</Text>
-                            </View>
+                            </TouchableOpacity>
                           )}
                         </TouchableOpacity>
                       ))}
                     <TouchableOpacity
                       style={{
-                        margin:10,
+                        margin: 10,
                         height: 50,
                         width: 100,
                         display: 'flex',
