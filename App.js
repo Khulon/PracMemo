@@ -7,6 +7,7 @@ import { createDrawerNavigator } from '@react-navigation/drawer';
 // Screens
 import CanvasScreen from './screens/CanvasScreen';
 import MemoScreen from './screens/MemoScreen';
+import PlayScreen from './screens/PlayScreen'
 
 const Drawer = createDrawerNavigator();
 
@@ -20,6 +21,7 @@ function App() {
             headerShown: true,
           }}
         >
+          <Drawer.Screen name="Play" component={PlayScreen} />
           <Drawer.Screen name="Canvas" component={CanvasScreen} />
           <Drawer.Screen name="Memo" component={MemoScreen} />
         </Drawer.Navigator>
