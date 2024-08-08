@@ -16,7 +16,7 @@ const PlayScreen = () => {
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [sound, setSound] = useState(null); // State to manage current playing sound
-  const [speakerMode, setSpeakerMode] = useState(false); // State for speaker mode
+  const [speakerMode, setSpeakerMode] = useState(true); // Default to speaker mode
 
   const fetchTreeData = async () => {
     try {
@@ -48,16 +48,30 @@ const PlayScreen = () => {
   useEffect(() => {
     fetchTreeData();
     fetchRecordings();
-  }, []);
-
-  useEffect(() => {
     return () => {
       // Clean up the sound when the component unmounts
       if (sound) {
         sound.unloadAsync();
       }
     };
-  }, [sound]);
+  }, []);
+
+  useEffect(() => {
+    setAudioMode();
+  }, [speakerMode]);
+
+  const setAudioMode = async () => {
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        playThroughEarpieceAndroid: !speakerMode,
+        staysActiveInBackground: true,
+      });
+    } catch (error) {
+      console.error('Failed to set audio mode', error);
+    }
+  };
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -121,19 +135,8 @@ const PlayScreen = () => {
     }
   };
 
-  const toggleSpeakerMode = async () => {
-    try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: true,
-        shouldDuckAndroid: !speakerMode,
-        playThroughEarpieceAndroid: !speakerMode,
-      });
-      setSpeakerMode(!speakerMode);
-    } catch (error) {
-      console.error('Failed to toggle speaker mode', error);
-    }
+  const toggleSpeakerMode = () => {
+    setSpeakerMode(prev => !prev);
   };
 
   if (loading) {
