@@ -1,5 +1,6 @@
 import React, { useState, useRef, useMemo, useEffect, onPress } from "react";
 import {
+  Platform,
   View,
   TouchableOpacity,
   StyleSheet,
@@ -338,9 +339,11 @@ function CanvasScreen() {
               position: "relative",
             }}
           >
+            {Platform.OS === 'ios' && (
             <Svg height="100%" width="100%">
               {renderGrid()}
             </Svg>
+          )}
 
             <TreeGraph
               onRootNodePosition={handleRootNodePosition}
@@ -404,13 +407,14 @@ function CanvasScreen() {
                           setEditedNodeName(selectedNode.name);
                           setIsEditingNodeName(true);
                         }}
+                        style={{zIndex:2}}
                       >
                         <Text style={styles.nodeTitle}>
                           {selectedNode.name}
                         </Text>
                       </TouchableOpacity>
                     )}
-                    <View style={{position:'absolute', flexDirection:'row-reverse', width:'100%', paddingRight:30}}>
+                    <View style={{position:'absolute', flexDirection:'row-reverse', width:'100%', paddingRight:30, zIndex:1}}>
                     <TouchableOpacity onPress={deleteSelectedNode}>
                       <Icon
                         name="trash"
@@ -592,6 +596,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 10,
+    zIndex:2
   },
   memoItem: {
     padding: 10,
