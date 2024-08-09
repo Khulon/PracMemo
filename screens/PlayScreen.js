@@ -70,6 +70,7 @@ export default function PlayScreen() {
   const onRefresh = () => {
     setRefreshing(true);
     fetchTreeData();
+    fetchRecordings();
   };
 
   const playMemo = async (memoId) => {
