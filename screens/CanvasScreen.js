@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect } from "react";
+import React, { useState, useRef, useMemo, useEffect, onPress } from "react";
 import {
   View,
   TouchableOpacity,
@@ -18,6 +18,7 @@ import {
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import * as FileSystem from "expo-file-system";
+import Icon from "react-native-vector-icons/FontAwesome";
 
 const CANVAS_WIDTH = 5000;
 const CANVAS_HEIGHT = 5000;
@@ -374,43 +375,52 @@ function CanvasScreen() {
           onChange={(index) => console.log("handleSheetChanges", index)}
         >
           <BottomSheetView style={styles.bottomSheetContent}>
-            <ScrollView contentContainerStyle={styles.scrollViewContent}>
+            <ScrollView contentContainerStyle={styles.scrollViewContent} style={{width:'100%'}}>
               {selectedNode && (
                 <>
-                  {isEditingNodeName ? (
-                    <TextInput
-                      style={styles.nodeTitle}
-                      value={editedNodeName}
-                      onChangeText={setEditedNodeName}
-                      onBlur={() => {
-                        setIsEditingNodeName(false);
-                        if (editedNodeName !== selectedNode.name) {
-                          // Update the selectedNode's name and save changes to file
-                          selectedNode.name = editedNodeName;
-                          FileSystem.writeAsStringAsync(
-                            treeDataFilePath,
-                            JSON.stringify(treeData)
-                          );
-                          setTreeData({ ...treeData });
-                        }
-                      }}
-                      autoFocus
-                    />
-                  ) : (
-                    <TouchableOpacity
-                      onPress={() => {
-                        setEditedNodeName(selectedNode.name);
-                        setIsEditingNodeName(true);
-                      }}
-                    >
-                      <Text style={styles.nodeTitle}>{selectedNode.name}</Text>
+                  <View style={{width:'100%', alignItems: "center" }}>
+                    {isEditingNodeName ? (
+                      <TextInput
+                        style={styles.nodeTitle}
+                        value={editedNodeName}
+                        onChangeText={setEditedNodeName}
+                        onBlur={() => {
+                          setIsEditingNodeName(false);
+                          if (editedNodeName !== selectedNode.name) {
+                            // Update the selectedNode's name and save changes to file
+                            selectedNode.name = editedNodeName;
+                            FileSystem.writeAsStringAsync(
+                              treeDataFilePath,
+                              JSON.stringify(treeData)
+                            );
+                            setTreeData({ ...treeData });
+                          }
+                        }}
+                        autoFocus
+                      />
+                    ) : (
+                      <TouchableOpacity
+                        onPress={() => {
+                          setEditedNodeName(selectedNode.name);
+                          setIsEditingNodeName(true);
+                        }}
+                      >
+                        <Text style={styles.nodeTitle}>
+                          {selectedNode.name}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    <View style={{position:'absolute', flexDirection:'row-reverse', width:'100%', paddingRight:30}}>
+                    <TouchableOpacity onPress={deleteSelectedNode}>
+                      <Icon
+                        name="trash"
+                        size={24}
+                        color="red"
+                        style={{ marginLeft: 10 }}
+                      />
                     </TouchableOpacity>
-                  )}
-                  <Button
-                    title="Delete Node"
-                    color="red"
-                    onPress={deleteSelectedNode}
-                  />
+                    </View>
+                  </View>
                   <ScrollView
                     showsHorizontalScrollIndicator={false}
                     horizontal
@@ -572,9 +582,11 @@ const styles = StyleSheet.create({
   bottomSheetContent: {
     flex: 1,
     alignItems: "center",
+    width:'100%',
   },
   scrollViewContent: {
     alignItems: "center",
+    width:'100%'
   },
   nodeTitle: {
     fontSize: 24,
