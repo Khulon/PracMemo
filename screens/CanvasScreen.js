@@ -7,6 +7,7 @@ import {
   ScrollView,
   Button,
   FlatList,
+  TextInput,
 } from "react-native";
 import { ReactNativeZoomableView } from "@openspacelabs/react-native-zoomable-view";
 import Svg, { Line } from "react-native-svg";
@@ -35,20 +36,21 @@ function CanvasScreen() {
   const bottomSheetModalRef = useRef(null);
   const memoSheetModalRef = useRef(null);
   const [selectedMemo, setSelectedMemo] = useState(null);
+  const [isEditingNodeName, setIsEditingNodeName] = useState(false);
+  const [editedNodeName, setEditedNodeName] = useState("");
 
   const snapPoints = useMemo(() => ["25%", "50%"], []);
-
 
   const fetchTreeData = async () => {
     try {
       const jsonString = await FileSystem.readAsStringAsync(treeDataFilePath);
       const data = JSON.parse(jsonString);
-      console.log(data)
+      console.log(data);
       setTreeData(data);
     } catch (error) {
-      setError('Failed to load tree data');
-      console.log("initiatlising")
-      initializeRootNode()
+      setError("Failed to load tree data");
+      console.log("initiatlising");
+      initializeRootNode();
     }
   };
 
@@ -156,7 +158,7 @@ function CanvasScreen() {
         );
         setTreeData({ ...treeData });
         console.log("Node added successfully");
-        console.log(JSON.stringify(treeData))
+        console.log(JSON.stringify(treeData));
       } catch (error) {
         console.error("Error adding node:", error);
       }
@@ -226,7 +228,9 @@ function CanvasScreen() {
       selectedNode.memos = selectedNode.memos || [];
 
       // Check if the memo id already exists
-      const memoExists = selectedNode.memos.some(existingMemo => existingMemo.id === memo.id);
+      const memoExists = selectedNode.memos.some(
+        (existingMemo) => existingMemo.id === memo.id
+      );
 
       if (memoExists) {
         // Handle the error (e.g., show a message or throw an error)
@@ -255,7 +259,9 @@ function CanvasScreen() {
       selectedNode.memos = selectedNode.memos || [];
 
       // Find the index of the memo to remove
-      const memoIndex = selectedNode.memos.findIndex((memo) => memo.id === memoId);
+      const memoIndex = selectedNode.memos.findIndex(
+        (memo) => memo.id === memoId
+      );
 
       if (memoIndex > -1) {
         // Remove the memo from the array
@@ -282,7 +288,9 @@ function CanvasScreen() {
       selectedNode.memos = selectedNode.memos || [];
 
       // Find the memo to update
-      const memoIndex = selectedNode.memos.findIndex(memo => memo.id === selectedMemoId);
+      const memoIndex = selectedNode.memos.findIndex(
+        (memo) => memo.id === selectedMemoId
+      );
 
       if (memoIndex === -1) {
         // Handle the error if the memo is not found
@@ -307,10 +315,9 @@ function CanvasScreen() {
     }
   };
 
-
   return (
     <BottomSheetModalProvider>
-      <View style={{ flex: 1}}>
+      <View style={{ flex: 1 }}>
         <ReactNativeZoomableView
           ref={zoomableViewRef}
           maxZoom={3}
@@ -370,8 +377,40 @@ function CanvasScreen() {
             <ScrollView contentContainerStyle={styles.scrollViewContent}>
               {selectedNode && (
                 <>
-                  <Text style={styles.nodeTitle}>{selectedNode.name}</Text>
-                  <Button title="Delete Node" color="red" onPress={deleteSelectedNode} />
+                  {isEditingNodeName ? (
+                    <TextInput
+                      style={styles.nodeTitle}
+                      value={editedNodeName}
+                      onChangeText={setEditedNodeName}
+                      onBlur={() => {
+                        setIsEditingNodeName(false);
+                        if (editedNodeName !== selectedNode.name) {
+                          // Update the selectedNode's name and save changes to file
+                          selectedNode.name = editedNodeName;
+                          FileSystem.writeAsStringAsync(
+                            treeDataFilePath,
+                            JSON.stringify(treeData)
+                          );
+                          setTreeData({ ...treeData });
+                        }
+                      }}
+                      autoFocus
+                    />
+                  ) : (
+                    <TouchableOpacity
+                      onPress={() => {
+                        setEditedNodeName(selectedNode.name);
+                        setIsEditingNodeName(true);
+                      }}
+                    >
+                      <Text style={styles.nodeTitle}>{selectedNode.name}</Text>
+                    </TouchableOpacity>
+                  )}
+                  <Button
+                    title="Delete Node"
+                    color="red"
+                    onPress={deleteSelectedNode}
+                  />
                   <ScrollView
                     showsHorizontalScrollIndicator={false}
                     horizontal
@@ -386,13 +425,14 @@ function CanvasScreen() {
                             margin: 10,
                             height: 50,
                             width: 100,
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            backgroundColor: 'lightgray',
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            backgroundColor: "lightgray",
                             borderWidth: 2,
-                            borderColor: selectedMemo?.id === memo.id ? 'blue' : 'gray',
-                            position: 'relative',
+                            borderColor:
+                              selectedMemo?.id === memo.id ? "blue" : "gray",
+                            position: "relative",
                           }}
                         >
                           <Text>{getMemoNames([memo.id])}</Text>
@@ -403,15 +443,19 @@ function CanvasScreen() {
                                 height: 20,
                                 width: 20,
                                 borderRadius: 10,
-                                backgroundColor: 'red',
-                                position: 'absolute',
+                                backgroundColor: "red",
+                                position: "absolute",
                                 top: -10,
                                 right: -10,
-                                justifyContent: 'center',
-                                alignItems: 'center',
+                                justifyContent: "center",
+                                alignItems: "center",
                               }}
                             >
-                              <Text style={{ color: 'white', fontWeight: 'bold' }}>X</Text>
+                              <Text
+                                style={{ color: "white", fontWeight: "bold" }}
+                              >
+                                X
+                              </Text>
                             </TouchableOpacity>
                           )}
                         </TouchableOpacity>
@@ -421,18 +465,18 @@ function CanvasScreen() {
                         margin: 10,
                         height: 50,
                         width: 100,
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        backgroundColor: 'lightgray',
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        backgroundColor: "lightgray",
                         borderWidth: 2,
-                        borderColor: 'gray',
+                        borderColor: "gray",
                         borderRadius: 1,
-                        borderStyle: 'dashed',
+                        borderStyle: "dashed",
                       }}
                       onPress={openMemoSelection}
                     >
-                      <Text style={{ color: 'green' }}>Add Memo</Text>
+                      <Text style={{ color: "green" }}>Add Memo</Text>
                     </TouchableOpacity>
                   </ScrollView>
 
@@ -454,12 +498,18 @@ function CanvasScreen() {
                           style={{
                             height: 50,
                             width: 100,
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            backgroundColor: 'lightgray',
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            backgroundColor: "lightgray",
                             borderWidth: 2,
-                            borderColor: selectedNode.memos?.some(memo => memo.id === selectedMemo?.id && memo.connected_node_id === child.key) ? 'blue' : 'gray',
+                            borderColor: selectedNode.memos?.some(
+                              (memo) =>
+                                memo.id === selectedMemo?.id &&
+                                memo.connected_node_id === child.key
+                            )
+                              ? "blue"
+                              : "gray",
                           }}
                         >
                           <Text>{child.name}</Text>
@@ -469,23 +519,20 @@ function CanvasScreen() {
                       style={{
                         height: 50,
                         width: 100,
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        backgroundColor: 'lightgray',
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        backgroundColor: "lightgray",
                         borderWidth: 2,
-                        borderColor: 'gray',
+                        borderColor: "gray",
                         borderRadius: 1,
-                        borderStyle: 'dashed',
+                        borderStyle: "dashed",
                       }}
                       onPress={addNodeToSelectedNode} // Assuming you want to add a new node
                     >
-                      <Text style={{ color: 'green' }}>Add Node</Text>
+                      <Text style={{ color: "green" }}>Add Node</Text>
                     </TouchableOpacity>
                   </ScrollView>
-
-
-
                 </>
               )}
             </ScrollView>
