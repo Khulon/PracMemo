@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Button, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, Button, FlatList, StyleSheet, TouchableOpacity, Alert, TextInput } from 'react-native';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import { Swipeable } from 'react-native-gesture-handler';
@@ -8,6 +8,8 @@ const MemoScreen = () => {
   const [recording, setRecording] = useState(null);
   const [recordings, setRecordings] = useState([]);
   const [isRecording, setIsRecording] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editedName, setEditedName] = useState('');
 
   useEffect(() => {
     loadRecordings();
@@ -99,27 +101,6 @@ const MemoScreen = () => {
     }
   };
 
-  const viewRecordingsFile = async () => {
-    try {
-      const fileUri = FileSystem.documentDirectory + 'recordings.json';
-      const fileInfo = await FileSystem.getInfoAsync(fileUri);
-
-      if (fileInfo.exists) {
-        const fileContent = await FileSystem.readAsStringAsync(fileUri, {
-          encoding: FileSystem.EncodingType.UTF8,
-        });
-        console.log('Recordings file content:', fileContent);
-        alert('Recordings file content:\n' + fileContent);
-      } else {
-        console.log('No recordings file found.');
-        alert('No recordings file found.');
-      }
-    } catch (error) {
-      console.error('Failed to read recordings file', error);
-      alert('Failed to read recordings file.');
-    }
-  };
-
   const generateIdFromTimestamp = (timestamp) => {
     return timestamp.replace(/[-:.TZ]/g, '');
   };
@@ -135,6 +116,22 @@ const MemoScreen = () => {
       });
     } catch (error) {
       console.error('Failed to delete recording', error);
+    }
+  };
+
+  const updateRecordingName = async (id, newName) => {
+    try {
+      const updatedRecordings = recordings.map((rec) => 
+        rec.id === id ? { ...rec, name: newName } : rec
+      );
+      setRecordings(updatedRecordings);
+
+      const fileUri = FileSystem.documentDirectory + 'recordings.json';
+      await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(updatedRecordings), {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+    } catch (error) {
+      console.error('Failed to update recording name', error);
     }
   };
 
@@ -162,11 +159,37 @@ const MemoScreen = () => {
     </TouchableOpacity>
   );
 
+  const handleNamePress = (id, name) => {
+    setEditingId(id);
+    setEditedName(name);
+  };
+
+  const handleNameBlur = () => {
+    if (editingId !== null) {
+      if (editedName.trim()) {
+        updateRecordingName(editingId, editedName);
+      }
+      setEditingId(null);
+    }
+  };
+
   const renderItem = ({ item }) => (
     <Swipeable renderRightActions={() => renderRightActions(item.id)}>
       <View style={styles.recordingItem}>
         <Text>{new Date(item.timestamp).toLocaleString()}</Text>
-        <Text>{item.name}</Text>
+        {editingId === item.id ? (
+          <TextInput
+            style={styles.nameInput}
+            value={editedName}
+            onChangeText={setEditedName}
+            onBlur={handleNameBlur}
+            autoFocus
+          />
+        ) : (
+          <TouchableOpacity onPress={() => handleNamePress(item.id, item.name)}>
+            <Text style={styles.recordingName}>{item.name}</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           onPress={() => playRecording(item.uri)}
           style={styles.playButton}
@@ -195,7 +218,6 @@ const MemoScreen = () => {
           onPress={isRecording ? stopRecording : startRecording}
         />
       </View>
-      {/* <Button title="View Recordings File" onPress={viewRecordingsFile} /> */}
       <FlatList
         data={recordings}
         renderItem={renderItem}
@@ -225,10 +247,28 @@ const styles = StyleSheet.create({
   recordingItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems:'center',
     padding: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#ccc',
     backgroundColor: '#fff',
+  },
+  recordingName: {
+    alignItems:'center',
+    justifyContent:'center',
+    borderWidth:0,
+    borderColor:'red'
+  },
+  nameInput: {
+    flex: 1,
+    borderBottomWidth: 1,
+    borderColor: '#000',
+    padding: 2,
+    borderWidth:0,
+    alignItems:'center',
+    justifyContent:'center',
+marginLeft:20,
+marginRight:20
   },
   playButton: {
     padding: 10,
