@@ -310,7 +310,7 @@ function CanvasScreen() {
 
   return (
     <BottomSheetModalProvider>
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1}}>
         <ReactNativeZoomableView
           ref={zoomableViewRef}
           maxZoom={3}
@@ -318,12 +318,10 @@ function CanvasScreen() {
           zoomStep={0.5}
           initialZoom={1}
           visualTouchFeedbackEnabled={true}
-          panBoundaryPadding={1000}
+          panBoundaryPadding={100}
           bindToBorders={true}
-          style={{
-            width: "100%",
-            height: "100%",
-          }}
+          contentWidth={CANVAS_WIDTH}
+          contentHeight={CANVAS_HEIGHT}
         >
           <View
             style={{
