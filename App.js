@@ -5,8 +5,9 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 
 // Screens
-import MapScreen from './screens/MapScreen';
-import SettingsScreen from './screens/SettingsScreen';
+import CanvasScreen from './screens/CanvasScreen';
+import MemoScreen from './screens/MemoScreen';
+import PlayScreen from './screens/PlayScreen'
 
 const Drawer = createDrawerNavigator();
 
@@ -15,13 +16,14 @@ function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
         <Drawer.Navigator
-          initialRouteName="Map"
+          initialRouteName="Home"
           screenOptions={{
             headerShown: true,
           }}
         >
-          <Drawer.Screen name="Settings" component={SettingsScreen} />
-          <Drawer.Screen name="Map" component={MapScreen} />
+          <Drawer.Screen name="Play" component={PlayScreen} />
+          <Drawer.Screen name="Canvas" component={CanvasScreen} />
+          <Drawer.Screen name="Memo" component={MemoScreen} />
         </Drawer.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>
